@@ -31,7 +31,7 @@ input, textarea, select, button {
 
 .chart-container {
   position: relative;
-  padding: 12px;
+  padding: 19px 16px;
 }
 
 .chart-heading {
@@ -43,8 +43,8 @@ input, textarea, select, button {
 
 .chart-body {
   position: relative;
-  margin-left: -12px;
-  margin-right: -12px;
+  margin-left: -16px;
+  margin-right: -16px;
 }
 
 .chart-footer {
