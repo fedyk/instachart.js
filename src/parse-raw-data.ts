@@ -1,4 +1,4 @@
-import { RawChartData, Chart } from "../types";
+import { RawChartData, Chart } from "./types";
 import { assert } from "./assert";
 import { isArray } from "./is-array";
 

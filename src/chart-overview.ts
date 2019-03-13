@@ -1,4 +1,4 @@
-import { generalUpdatePattern } from "../helpers/general-update-pattern";
+import { generalUpdatePattern } from "../general-update-pattern";
 
 interface Props {
   extend: [
