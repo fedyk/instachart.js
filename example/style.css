@@ -57,7 +57,7 @@ input, textarea, select, button {
 }
 
 .footer__static {
-  position: fixed;
+  position: sticky;
   bottom: 0;
   left: 0;
   right: 0;

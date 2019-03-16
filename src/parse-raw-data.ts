@@ -1,6 +1,7 @@
 import { RawChartData, Chart } from "./types";
 import { assert } from "./assert";
 import { isArray } from "./is-array";
+import { extend } from "./extend";
 
 export function parseRawData(data: RawChartData) {
   if (!data) {
@@ -13,7 +14,9 @@ export function parseRawData(data: RawChartData) {
   const colors = data.colors;
   const chart: Chart = {
     x: [],
-    lines: []
+    xDomain: [0, 1],
+    lines: [],
+    linesDomain: [0, 1]
   }
 
   for (let i = 0; i < columns.length; i++) {
@@ -25,19 +28,24 @@ export function parseRawData(data: RawChartData) {
 
     const columnId = column[0];
     const columnType = types[columnId];
+    const data = column.slice(1) as number[];
 
     if (columnType === "line") {
       chart.lines.push({
         name: names[columnId],
         color: colors[columnId],
-        data: column.slice(1) as number[]
+        domain: extend(data),
+        data: data
       })
     }
 
     if (columnType === "x") {
       chart.x = column.slice(1) as number[];
+      chart.xDomain = extend(chart.x)
     }
   }
+
+  chart.linesDomain = extend(chart.lines.reduce((prev, curr) => prev.concat(curr.domain), [] as number[]))
 
   return chart;
 }

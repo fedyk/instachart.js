@@ -5,5 +5,5 @@ test("scale", function() {
     .x(d => d[0])
     .y(d => d[1])
 
-  expect(line([[0, 0], [1, 1]])).toBe("M0,0L1,1Z");
+  expect(line([[0, 0], [1, 1]])).toBe("M0,0L1,1");
 })

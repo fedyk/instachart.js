@@ -14,12 +14,16 @@ export interface RawChartData {
 }
 
 export interface Line {
-  name: string;
-  color: string;
-  data: number[];
+  name: string
+  color: string
+  domain: [number, number]
+  data: number[]
 }
 
 export interface Chart {
-  x: number[];
-  lines: Line[];
+  x: number[]
+  xDomain: [number, number]
+  
+  lines: Line[]
+  linesDomain: [number, number]
 }

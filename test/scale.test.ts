@@ -6,4 +6,5 @@ test("scale", function() {
   expect(x(-10)).toBe(-360);
   expect(x.invert(360)).toBe(10);
   expect(x.invert(-360)).toBe(-10);
+  expect(createScale([0, 10], [360, 0])(10)).toBe(0);
 })

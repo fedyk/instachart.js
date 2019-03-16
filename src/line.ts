@@ -1,12 +1,5 @@
 import { createPath } from "./path";
 
-/**
- * var line = createLine()
- *   .x(d => d.x)
- *   .y(d => d.y)
- * 
- * <path d="line()"></path> // output <path d="M0,43.6.333..."></path>
- */
 export function createLine<T>() {
   let x: (d: T, i: number) => number;
   let y: (d: T, i: number) => number;
@@ -26,14 +19,14 @@ export function createLine<T>() {
       }
     }
 
-    return path.closePath()()
+    return path()
   }
 
-  line.x = function(_: (d: T) => number) {
+  line.x = function(_: (datum: T, index: number) => number) {
     return x = _, line;
   }
 
-  line.y = function(_: (d: T) => number) {
+  line.y = function(_: (datum: T, index: number) => number) {
     return y = _, line;
   }
 
