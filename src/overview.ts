@@ -12,7 +12,7 @@ export function createOverview() {
   let lines = [].map(() => createLine())
   let x = createScale([0, 1], [0, 1])
   let y = createScale([0, 1], [height, 0])
-  let selectedDomain = [0, 1]
+  let selectedDomain: [number, number] = [0, 1]
 
   function renderLines(target) {
     const allLines = generalUpdatePattern<Line>(target, ".line", data.lines);
@@ -33,9 +33,9 @@ export function createOverview() {
   }
 
   function renderControls(target) {
-    const overviewControls = generalUpdatePattern<number>(target, ".overview-control", selectedDomain)
+    const update = generalUpdatePattern<number>(target, ".overview-control", selectedDomain)
 
-    overviewControls.enter((d) => {
+    update.enter((d) => {
       const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect")
 
       setAttribute(rect, "width", CONTROL_WIDTH + "")
@@ -48,6 +48,29 @@ export function createOverview() {
       return rect
     }).merge((rect, datum) => {
       setAttribute(rect, "x", x(datum) - (CONTROL_WIDTH / 2) + "")
+    })
+  }
+
+  function renderControlsBorders(target) {
+    const update = generalUpdatePattern<[number, [number, number]]>(target, ".overview-control-border", [
+      [0, selectedDomain],
+      [height, selectedDomain]
+    ])
+
+    update.enter(() => {
+      const line = document.createElementNS("http://www.w3.org/2000/svg", "line")
+
+      setAttribute(line, "class", "overview-control-border")
+      setAttribute(line, "stroke", "#C6DCEB")
+      setAttribute(line, "stroke-opacity", "0.6")
+
+      return line
+    }).merge((line, datum) => {
+      const [y, [start, end]] = datum
+      setAttribute(line, "x1", x(start) - CONTROL_WIDTH / 2 + "")
+      setAttribute(line, "y1", y + "")
+      setAttribute(line, "x2", x(end) + CONTROL_WIDTH / 2 + "")
+      setAttribute(line, "y2", y + "")
     })
   }
 
@@ -78,6 +101,7 @@ export function createOverview() {
   function render(target: Element) {
     renderLines(target)
     renderControls(target)
+    renderControlsBorders(target)
     renderControlsOverlay(target)
   }
 
@@ -99,7 +123,7 @@ export function createOverview() {
       .x((d, i) => x(data.x[i]))
       .y(d => y(d))
     )
-    selectedDomain = data.xDomain.slice();
+    selectedDomain = [data.xDomain[0], data.xDomain[1]];
     x.domain(data.xDomain);
     y.domain(data.linesDomain);
     return render;
