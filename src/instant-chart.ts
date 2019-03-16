@@ -21,17 +21,17 @@ export function createInstantChart(parent: HTMLElement) {
   const xPadding = 16;
   const topPadding = 10;
   const bottomPadding = 10;
+  const bodyBottomMargin = 16;
   const heightOverview = 38;
   // const widthOverviewControl = 4;
-  const leftAxis = createLeftAxis();
-  const bottomAxis = createButtonAxis();
+  const leftAxis = createLeftAxis()
+  const bottomAxis = createButtonAxis()
+  const renderOverview = createOverview().height(heightOverview)
+
   let data: Chart;
   let width: number;
   let height: number;
   // let xOverviewSelected: [number, number] = [0, 1];
-
-  const renderOverview = createOverview()
-    .height(38)
 
   // Add left spacing for Left Axis
   setAttribute(gLeftAxis, "transform", "translate(16,0)")
@@ -81,8 +81,8 @@ export function createInstantChart(parent: HTMLElement) {
     return width = +nextWidth,
       renderOverview.xRange([0, width - 2 * xPadding]),
       xScaleMain.range([xPadding, width - 2 * xPadding]),
-      xScaleOverview.range([xPadding, width - 2 * xPadding]),
-      bottomAxis.range([xPadding, width - 2 * xPadding]),
+      xScaleOverview.range([0, width - 2 * xPadding]),
+      bottomAxis.range([0, width - 2 * xPadding]),
       leftAxis.pathLength(width - 2 * xPadding),
       svg.setAttribute("width", width + ""),
       renderChart
@@ -90,12 +90,12 @@ export function createInstantChart(parent: HTMLElement) {
 
   renderChart.height = function(nextHeight: number) {
     return height = nextHeight,
-      yScaleMain.range([height - bottomPadding - topPadding - heightOverview, topPadding]),
+      yScaleMain.range([height - bottomPadding - heightOverview - bodyBottomMargin, topPadding]),
       yScaleOverview.range([height - bottomPadding, height - bottomPadding - heightOverview]),
-      leftAxis.range([height - bottomPadding - heightOverview, topPadding]),
+      leftAxis.range([height - bottomPadding - heightOverview - bodyBottomMargin, topPadding]),
       svg.setAttribute("height", height + ""),
-      setAttribute(gBottomAxis, "transform", `translate(${xPadding}, ${height - bottomPadding - heightOverview})`),
-      setAttribute(gOverview, "transform", `translate(${xPadding}, ${height - bottomPadding - heightOverview})`),
+      setAttribute(gBottomAxis, "transform", `translate(${xPadding},${height - bottomPadding - heightOverview - bodyBottomMargin})`),
+      setAttribute(gOverview, "transform", `translate(${xPadding},${height - bottomPadding - heightOverview})`),
       renderChart
   }
 

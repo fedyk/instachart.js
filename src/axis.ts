@@ -28,6 +28,7 @@ export function createLeftAxis() {
       setAttribute(line, "class", "tick-line")
       setAttribute(line, "stroke", "#ECF0F3")
       setAttribute(line, "stroke-width", "1")
+      setAttribute(text, "y", "-5")
       setAttribute(text, "class", "tick-text")
       setAttribute(text, "fill", "#96A2AA")
       setAttribute(text, "font-size", "10")
@@ -35,8 +36,8 @@ export function createLeftAxis() {
       text.textContent = datum + "";
 
       return g;
-    }).merge((element, datum) => {
-      setAttribute(element, "transform", `translate(0,${scale(datum)})`)
+    }).merge((g, datum) => {
+      setAttribute(g, "transform", `translate(0,${scale(datum)})`)
     })
 
     generalUpdatePattern<number>(target, ".tick-line", ticks).update((line) => {
@@ -79,19 +80,25 @@ export function createButtonAxis() {
       const text = g.appendChild(document.createElementNS("http://www.w3.org/2000/svg", "text"))
 
       setAttribute(g, "class", "tick")
+      setAttribute(text, "y", "12")
       setAttribute(text, "fill", "#96A2AA")
       setAttribute(text, "font-size", "10")
+      setAttribute(text, "text-anchor", "middle")
       text.textContent = formatDate(datum);
 
       return g;
-    }).merge((element, datum) => {
-      setAttribute(element, "transform", `translate(${scale(datum)},0)`)
+    }).merge((g, datum) => {
+      setAttribute(g, "transform", `translate(${scale(datum)},0)`)
     })
   }
 
-  render.domain = scale.domain
+  render.domain = function(_: [number, number]) {
+    return scale.domain(_), render
+  }
 
-  render.range = scale.range
+  render.range = function(_: [number, number]) {
+    return scale.range(_), render
+  }
 
   return render;
 }
