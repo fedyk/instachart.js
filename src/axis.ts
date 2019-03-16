@@ -66,9 +66,10 @@ export function createButtonAxis() {
   let ticksCount: number = 6;
 
   function getTicks() {
-    const [d0, d1] = scale.domain() as number[];
+    const diff = 1000 * 60 * 60 * 24;
+    let [d0, d1] = (scale.domain() as number[]).map(v => v / diff);
 
-    return ticks(d0, d1, ticksCount);
+    return ticks(d0, d1, ticksCount).map(v => v * diff);
   }
 
   function render(target: Element) {

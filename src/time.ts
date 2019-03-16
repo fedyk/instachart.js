@@ -4,5 +4,5 @@ export function formatDate(miliseconds: number) {
   const date = new Date(miliseconds);
   const month = date.getMonth();
 
-  return MONTHS[month] + " " + date.getFullYear().toString().substr(-2);
+  return MONTHS[month] + " " + date.getDate()
 }
