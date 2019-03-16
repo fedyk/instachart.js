@@ -6,6 +6,7 @@ import { parseRawData } from "./parse-raw-data";
 import { RawChartData, Chart, Line } from "./types";
 import { createLeftAxis, createButtonAxis } from "./axis";
 import { generalUpdatePattern } from "./general-update-pattern";
+import { createOverview } from "./overview";
 
 export function createInstantChart(parent: HTMLElement) {
   const svg = parent.appendChild(document.createElementNS("http://www.w3.org/2000/svg", "svg"))
@@ -19,15 +20,18 @@ export function createInstantChart(parent: HTMLElement) {
   const yScaleOverview = createScale([0, 1], [0, 1])  
   const xPadding = 16;
   const topPadding = 10;
-  const bottomPadding = 6;
+  const bottomPadding = 10;
   const heightOverview = 38;
-  const widthOverviewControl = 4;
+  // const widthOverviewControl = 4;
   const leftAxis = createLeftAxis();
   const bottomAxis = createButtonAxis();
   let data: Chart;
   let width: number;
   let height: number;
-  let xOverviewSelected: [number, number] = [0, 1];
+  // let xOverviewSelected: [number, number] = [0, 1];
+
+  const renderOverview = createOverview()
+    .height(38)
 
   // Add left spacing for Left Axis
   setAttribute(gLeftAxis, "transform", "translate(16,0)")
@@ -57,76 +61,17 @@ export function createInstantChart(parent: HTMLElement) {
 
     leftAxis(gLeftAxis);
     bottomAxis(gBottomAxis);
-
-    // Render lines on overview
-    const linesOverview = data.lines.map(v => createLine<number>()
-      .x((d, i) => xScaleOverview(data.x[i]))
-      .y(d => yScaleOverview(d)))
-    
-    const linesUpdate = generalUpdatePattern<Line>(gOverview, ".line", data.lines);
-
-    linesUpdate.enter((line, index) => {
-      const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-
-      setAttribute(path, "fill", "none")
-      setAttribute(path, "class", "line"),
-      setAttribute(path, "d", linesOverview[index](line.data)),
-      setAttribute(path, "stroke", data.lines[index].color)
-      setAttribute(path, "stroke-width", "1")
-
-      return path
-    })
-
-
-    // render overview controls
-    const overviewControls = generalUpdatePattern(gOverview, ".overview-control", xOverviewSelected)
-
-    overviewControls.enter((d) => {
-      const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
-      return setAttribute(rect, "width", widthOverviewControl + ""),
-        setAttribute(rect, "height", heightOverview + ""),
-        setAttribute(rect, "class", "overview-control"),
-        setAttribute(rect, "fill", "#C6DCEB"),
-        setAttribute(rect, "fill-opacity", "0.6")
-    }).merge((element, datum) => {
-      setAttribute(element, "y", height - bottomPadding - heightOverview + "")
-      setAttribute(element, "x", xScaleOverview(datum) - (widthOverviewControl / 2) + "")
-    })
-
-    
-    // render overview overlay
-    const overviewOverlays = generalUpdatePattern(gOverview, ".overview-overlay", xOverviewSelected)
-
-    overviewOverlays.enter(() => {
-      const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
-      return setAttribute(rect, "height", heightOverview + ""),
-        setAttribute(rect, "class", "overview-overlay"),
-        setAttribute(rect, "fill", "#F2F7FA"),
-        setAttribute(rect, "fill-opacity", "0.8")
-    }).merge((element, datum, index) => {
-      const x = index === 0
-        ? xPadding
-        : xScaleOverview(datum);
-      const w = index === 0
-        ? (xScaleOverview(datum) - widthOverviewControl / 2 - xPadding)
-        : (width - 2 * xPadding - xScaleOverview(datum) + widthOverviewControl / 2);
-      const y = height - bottomPadding - heightOverview;
-      const h = heightOverview
-
-      setAttribute(element, "x", x + "")
-      setAttribute(element, "y", y + "")
-      setAttribute(element, "height", h + "")
-      setAttribute(element, "width", w + "")
-    })
+    renderOverview(gOverview);
   }
 
   renderChart.data = function(_: RawChartData) {
     return data = parseRawData(_),
+      renderOverview.data(data),
       xScaleMain.domain(data.xDomain),
       yScaleMain.domain(data.linesDomain),
       xScaleOverview.domain(data.xDomain),
       yScaleOverview.domain(data.linesDomain),
-      xOverviewSelected = reselectOverview(data.x),
+      // xOverviewSelected = reselectOverview(data.x),
       leftAxis.domain(data.linesDomain),
       bottomAxis.domain(data.xDomain),
       renderChart;
@@ -134,6 +79,7 @@ export function createInstantChart(parent: HTMLElement) {
 
   renderChart.width = function(nextWidth: number) {
     return width = +nextWidth,
+      renderOverview.xRange([0, width - 2 * xPadding]),
       xScaleMain.range([xPadding, width - 2 * xPadding]),
       xScaleOverview.range([xPadding, width - 2 * xPadding]),
       bottomAxis.range([xPadding, width - 2 * xPadding]),
@@ -149,6 +95,7 @@ export function createInstantChart(parent: HTMLElement) {
       leftAxis.range([height - bottomPadding - heightOverview, topPadding]),
       svg.setAttribute("height", height + ""),
       setAttribute(gBottomAxis, "transform", `translate(${xPadding}, ${height - bottomPadding - heightOverview})`),
+      setAttribute(gOverview, "transform", `translate(${xPadding}, ${height - bottomPadding - heightOverview})`),
       renderChart
   }
 

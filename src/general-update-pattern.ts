@@ -57,7 +57,7 @@ export function generalUpdatePattern<T>(parent: Element, selector: string, data:
       return that;
     },
 
-    exit(cb: (element: Element, index: number) => Element) {
+    exit(cb: (element: Element, index: number) => void) {
       return exitGroup.map((element, index) => cb(element, index)), that
     }
   }

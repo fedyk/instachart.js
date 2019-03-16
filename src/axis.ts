@@ -30,7 +30,7 @@ export function createLeftAxis() {
       setAttribute(line, "stroke-width", "1")
       setAttribute(text, "class", "tick-text")
       setAttribute(text, "fill", "#96A2AA")
-      setAttribute(text, "font-size", "8")
+      setAttribute(text, "font-size", "10")
 
       text.textContent = datum + "";
 
@@ -80,7 +80,7 @@ export function createButtonAxis() {
 
       setAttribute(g, "class", "tick")
       setAttribute(text, "fill", "#96A2AA")
-      setAttribute(text, "font-size", "8")
+      setAttribute(text, "font-size", "10")
       text.textContent = formatDate(datum);
 
       return g;
