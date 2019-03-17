@@ -1,10 +1,12 @@
 import { Chart, Line } from "./types";
 import { createScale } from "./scale";
+import { createDrag } from "./drag";
 import { createLine } from "./line";
 import { generalUpdatePattern } from "./general-update-pattern";
 import { setAttribute } from "./set-attribute";
 
 const CONTROL_WIDTH = 4;
+const HANDLER_WIDTH = 6;
 
 export function createOverview() {
   let height = 38;
@@ -13,6 +15,8 @@ export function createOverview() {
   let x = createScale([0, 1], [0, 1])
   let y = createScale([0, 1], [height, 0])
   let selectedDomain: [number, number] = [0, 1]
+
+  const drag = createDrag();
 
   function renderLines(target) {
     const allLines = generalUpdatePattern<Line>(target, ".line", data.lines);
@@ -32,7 +36,7 @@ export function createOverview() {
     allLines.exit(line => line.parentElement !== null && line.parentElement.removeChild(line))
   }
 
-  function renderControls(target) {
+  function renderSelectionEdges(target) {
     const update = generalUpdatePattern<number>(target, ".overview-control", selectedDomain)
 
     update.enter((d) => {
@@ -51,7 +55,7 @@ export function createOverview() {
     })
   }
 
-  function renderControlsBorders(target) {
+  function renderSelectionTopBorder(target) {
     const update = generalUpdatePattern<[number, [number, number]]>(target, ".overview-control-border", [
       [0, selectedDomain],
       [height, selectedDomain]
@@ -74,7 +78,7 @@ export function createOverview() {
     })
   }
 
-  function renderControlsOverlay(target) {
+  function renderOverlays(target) {
     const overviewOverlays = generalUpdatePattern(target, ".overview-overlay", selectedDomain)
 
     overviewOverlays.enter(() => {
@@ -98,26 +102,65 @@ export function createOverview() {
     })
   }
 
-  function render(target: Element) {
-    renderLines(target)
-    renderControls(target)
-    renderControlsBorders(target)
-    renderControlsOverlay(target)
+  function renderSelectionSideHandlers(target) {
+    const update = generalUpdatePattern<number>(target, ".overview-handlers", selectedDomain)
+
+    update.enter((d, i) => {
+      const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect")
+
+      setAttribute(rect, "width", HANDLER_WIDTH + "")
+      setAttribute(rect, "height", height + "")
+      setAttribute(rect, "class", "overview-handlers")
+      setAttribute(rect, "y", 0 + "")
+
+      drag(rect).container(() => target).on("start", (event) => {
+        event.on("drag", (event) => {
+          const selection = selectedDomain.concat() as [number, number];
+
+          selection[i] = Math.min(
+            Math.max(Math.round(x.invert(event.x)), x.domain()[0]), x.domain()[1]
+          );
+          selectedDomain = selection;
+          renderSelectionSideHandlers(target)
+          renderSelectionTopBorder(target)
+          renderSelectionEdges(target)
+        })
+
+        event.on("end", (event) => {
+          console.log(event.x)
+        })
+      })
+
+      return rect
+    }).merge((rect, datum) => {
+      setAttribute(rect, "x", x(datum) - (HANDLER_WIDTH / 2) + "")
+    })
   }
 
-  render.xRange = function(_: [number, number]) {
+  function render(target: SVGGElement) {
+    target.style.pointerEvents = "all";
+    target.style.fill = "none";
+    target.style["-webkit-tap-highlight-color"] = "rgba(0,0,0,0)";
+    renderLines(target)
+    renderSelectionEdges(target)
+    renderSelectionTopBorder(target)
+    renderOverlays(target)
+    renderSelectionSideHandlers(target)
+  }
+
+  render.xRange = function (_: [number, number]) {
     return x.range(_), render
   }
 
-  render.yRange = function(_: [number, number]) {
+  render.yRange = function (_: [number, number]) {
     return y.range(_), render
   }
 
-  render.height = function(_) {
+  render.height = function (_) {
     return height = _, render;
   }
 
-  render.data = function(_: Chart) {
+  render.data = function (_: Chart) {
     data = _;
     lines = data.lines.map(() => createLine<number>()
       .x((d, i) => x(data.x[i]))

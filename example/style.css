@@ -37,14 +37,14 @@ input, textarea, select, button {
 .chart-heading {
   position: relative;
   margin: 0;
-  padding: 0 0 12px;
-  /* font-size: 1rem; */
+  padding: 0;
 }
 
 .chart-body {
   position: relative;
   margin-left: -16px;
   margin-right: -16px;
+  /* background: #b3b3b3; */
 }
 
 .chart-footer {
