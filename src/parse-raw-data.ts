@@ -1,4 +1,4 @@
-import { RawChartData, Chart } from "./types";
+import { RawChartData, Chart, Line } from "./types";
 import { assert } from "./assert";
 import { isArray } from "./is-array";
 import { extend } from "./extend";
@@ -26,26 +26,38 @@ export function parseRawData(data: RawChartData) {
     assert(column.length > 2, `parsing error: column should have more that 2 points`);
     assert(column[0] != null, `parsing error: column with index ${i} has empty column id`);
 
-    const columnId = column[0];
-    const columnType = types[columnId];
+    const chartId = column[0];
+    const chartType = types[chartId];
     const data = column.slice(1) as number[];
 
-    if (columnType === "line") {
+    if (chartType === "line") {
       chart.lines.push({
-        name: names[columnId],
-        color: colors[columnId],
+        id: chartId,
+        name: names[chartId],
+        color: colors[chartId],
         domain: extend(data),
-        data: data
+        data: data,
+        visible: true
       })
     }
 
-    if (columnType === "x") {
+    if (chartType === "x") {
       chart.x = column.slice(1) as number[];
       chart.xDomain = extend(chart.x)
     }
   }
 
-  chart.linesDomain = extend(chart.lines.reduce((prev, curr) => prev.concat(curr.domain), [] as number[]))
+  chart.linesDomain = extendLinesDomain(chart.lines);
 
   return chart;
+}
+
+export function extendLinesDomain(lines: Line[]): [number, number] {
+  const visibleLines = lines.reduce((prev, curr) => prev.concat(curr.domain), [] as number[]);
+
+  if (visibleLines.length === 0) {
+    return [0, 1]
+  }
+
+  return extend(visibleLines)
 }

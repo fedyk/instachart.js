@@ -2,11 +2,12 @@ import { assert } from "./assert";
 import { createLine } from "./line";
 import { createScale } from "./scale";
 import { setAttribute } from "./set-attribute";
-import { parseRawData } from "./parse-raw-data";
+import { parseRawData, extendLinesDomain } from "./parse-raw-data";
 import { RawChartData, Chart, Line } from "./types";
 import { createLeftAxis, createButtonAxis } from "./axis";
 import { generalUpdatePattern } from "./general-update-pattern";
 import { createOverview } from "./overview";
+import { filter } from "./filter";
 
 export function createInstantChart(parent: HTMLElement) {
   const svg = parent.appendChild(document.createElementNS("http://www.w3.org/2000/svg", "svg"))
@@ -31,6 +32,13 @@ export function createInstantChart(parent: HTMLElement) {
 
   setAttribute(gLeftAxis, "transform", "translate(16,0)")
 
+  function render() {
+    renderMainLines(gBody)
+    renderLeftAxis(gLeftAxis);
+    renderBottomAxis(gBottomAxis);
+    renderOverview(gOverview);
+  }
+
   function changeSelection(domain: [number, number]) {
     xScaleMain.domain(domain)
     renderBottomAxis.domain(domain)
@@ -40,17 +48,15 @@ export function createInstantChart(parent: HTMLElement) {
   }
 
   function renderMainLines(target) {
-
-    // render main lines
     const mainLinePaths = data.lines.map(() => {
       return createLine()
         .x((d, i) => xScaleMain(data.x[i]))
         .y(d => yScaleMain(d))
     });
 
-    const mainLinesGUP = generalUpdatePattern(target, ".line", data.lines);
+    const update = generalUpdatePattern(target, ".line", data.lines);
 
-    mainLinesGUP.enter((d, index) => {
+    update.enter((d, index) => {
       const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
 
       setAttribute(path, "fill", "none"),
@@ -61,15 +67,8 @@ export function createInstantChart(parent: HTMLElement) {
       return path;
     }).merge((path, line, index) => {
       setAttribute(path, "d", mainLinePaths[index](line.data))
-      
+      setAttribute(path, "stroke-opacity", line.visible ? "1" : "0")
     })
-  }
-
-  function render() {
-    renderMainLines(gBody)
-    renderLeftAxis(gLeftAxis);
-    renderBottomAxis(gBottomAxis);
-    renderOverview(gOverview);
   }
 
   render.data = function(_: RawChartData) {
@@ -94,13 +93,26 @@ export function createInstantChart(parent: HTMLElement) {
   }
 
   render.height = function(nextHeight: number) {
-    return height = nextHeight,
+    return height = +nextHeight,
       yScaleMain.range([height - bottomPadding - heightOverview - bodyBottomMargin, topPadding]),
       renderLeftAxis.range([height - bottomPadding - heightOverview - bodyBottomMargin, topPadding]),
       svg.setAttribute("height", height + ""),
       setAttribute(gBottomAxis, "transform", `translate(${xPadding},${height - bottomPadding - heightOverview - bodyBottomMargin})`),
       setAttribute(gOverview, "transform", `translate(0,${height - bottomPadding - heightOverview})`),
       render
+  }
+
+  render.toggleLine = function(id: string, visible: boolean) {
+    for (let i = 0; i < data.lines.length; i++) {
+      if (data.lines[i].id === id) {
+        data.lines[i].visible = visible;
+      }
+    }
+    return data.linesDomain = extendLinesDomain(filter(data.lines, line => line.visible === true)),
+      yScaleMain.domain(data.linesDomain),
+      renderLeftAxis.domain(data.linesDomain),
+      renderOverview.data(data),
+      render;
   }
 
   return render;

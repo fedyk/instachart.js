@@ -14,10 +14,12 @@ export interface RawChartData {
 }
 
 export interface Line {
+  id: string
   name: string
   color: string
   domain: [number, number]
   data: number[]
+  visible: boolean
 }
 
 export interface Chart {

@@ -31,6 +31,7 @@ export function createOverview() {
     }).merge((path, datum, index) => {
       setAttribute(path, "d", lines[index](datum.data))
       setAttribute(path, "stroke", data.lines[index].color)
+      setAttribute(path, "stroke-opacity", data.lines[index].visible ? "1" : "0")
     })
 
     // remove not needed lines
@@ -96,7 +97,7 @@ export function createOverview() {
     }).merge((rect, datum, index) => {
       const [r0, r1] = x.range() as [number, number];
       const rectX = index === 0 ? r0 : x(datum);
-      const rectW = index === 0 ? (x(datum) - CONTROL_WIDTH / 2) : (r1 - x(datum) + CONTROL_WIDTH / 2);
+      const rectW = index === 0 ? Math.max(x(datum) - CONTROL_WIDTH / 2 - r0, 0) : (r1 - x(datum) + CONTROL_WIDTH / 2);
 
       setAttribute(rect, "x", rectX + "")
       setAttribute(rect, "width", rectW + "")
@@ -112,8 +113,8 @@ export function createOverview() {
       
       rect.style.cursor = "grab";
       setAttribute(rect, "height", height + "")
-      setAttribute(rect, "fill-opacity", "0.4")
-      setAttribute(rect, "fill", "#DCEDC8")
+      // setAttribute(rect, "fill-opacity", "0.4")
+      // setAttribute(rect, "fill", "#DCEDC8")
       setAttribute(rect, "class", "overview-center-handler")
       setAttribute(rect, "y", 0 - HANDLE_EXTRA_SPACE + "")
 
@@ -167,8 +168,8 @@ export function createOverview() {
       rect.style.cursor = "ew-resize";
       setAttribute(rect, "width", HANDLER_WIDTH + "")
       setAttribute(rect, "height", height + 2 * HANDLE_EXTRA_SPACE + "")
-      setAttribute(rect, "fill-opacity", "0.6")
-      setAttribute(rect, "fill", "#ccc")
+      // setAttribute(rect, "fill-opacity", "0.6")
+      // setAttribute(rect, "fill", "#ccc")
       setAttribute(rect, "class", "overview-handlers")
       setAttribute(rect, "y", 0 - HANDLE_EXTRA_SPACE + "")
 
