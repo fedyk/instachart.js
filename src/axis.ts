@@ -3,6 +3,7 @@ import { createScale } from "./scale";
 import { setAttribute } from "./set-attribute";
 import { generalUpdatePattern } from "./general-update-pattern";
 import { formatDate } from "./time";
+import { removeElement } from "./remove-element";
 
 export function createLeftAxis() {
   let scale = createScale([0, 1], [0, 1]);
@@ -39,6 +40,8 @@ export function createLeftAxis() {
     }).merge((g, datum) => {
       setAttribute(g, "transform", `translate(0,${scale(datum)})`)
     })
+
+    allTicks.exit(el => removeElement(el))
 
     generalUpdatePattern<number>(target, ".tick-line", ticks).update((line) => {
       // setAttribute(line, "pathLength", pathLength + "")
@@ -91,6 +94,8 @@ export function createButtonAxis() {
     }).merge((g, datum) => {
       setAttribute(g, "transform", `translate(${scale(datum)},0)`)
     })
+
+    allTicks.exit(el => removeElement(el))
   }
 
   render.domain = function(_: [number, number]) {
