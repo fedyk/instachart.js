@@ -4,7 +4,7 @@ declare const event: UIEvent;
 
 function noop() { }
 
-function noDraggable(view: Window) {
+function disableDragging(view: Window) {
   const root = view.document.documentElement;
 
   view.addEventListener("dragstart", preventDefault, false);
@@ -18,7 +18,7 @@ function noDraggable(view: Window) {
   }
 }
 
-export function yesDraggable(view: Window, noclick) {
+export function enableDragging(view: Window, noclick) {
   const root = view.document.documentElement;
 
   view.removeEventListener("dragstart", preventDefault, false)
@@ -53,7 +53,7 @@ function DragEvent(target, type, subject, id: string, active: number, x: number,
   this.listeners = listeners;
 }
 
-DragEvent.prototype.on = function(event, listener) {
+DragEvent.prototype.on = function (event, listener) {
   this.listeners[event] = listener
 }
 
@@ -126,29 +126,28 @@ export function createDrag() {
     end: noop
   };
   let active = 0;
-  let mousedownx;
-  let mousedowny;
-  let mousemoving;
+  let mouseDownX;
+  let mouseDownY;
+  let mouseIsMoving;
   let touchending;
   let clickDistance2 = 0;
 
   function drag(target: SVGElement) {
-    target.addEventListener("mousedown", mousedowned, false);
+    target.addEventListener("mousedown", mouseDowned, false);
 
     if ("ontouchstart" in target) {
-      (target as Element).addEventListener("touchstart", touchstarted, false);
-      (target as Element).addEventListener("touchmove.", touchmoved, false);
-      (target as Element).addEventListener("touchend", touchended, false);
-      (target as Element).addEventListener("touchcancel", touchended, false);
+      (target as Element).addEventListener("touchstart", touchStarted, false);
+      (target as Element).addEventListener("touchmove", touchMoved, false);
+      (target as Element).addEventListener("touchend", touchEnded, false);
+      (target as Element).addEventListener("touchcancel", touchEnded, false);
       target.style.touchAction = "none";
-      // target.style style("touch-action", "none")
-      // target.addEventListener() .style("-webkit-tap-highlight-color", "rgba(0,0,0,0)");
+      target.style["-webkit-tap-highlight-color"] = "rgba(0,0,0,0)";
     }
 
     return drag;
   }
 
-  function mousedowned(event: MouseEvent) {
+  function mouseDowned(event: MouseEvent) {
     if (touchending) {
       return;
     }
@@ -160,42 +159,42 @@ export function createDrag() {
     }
 
 
-    event.view.addEventListener("mousemove", mousemoved, false);
+    event.view.addEventListener("mousemove", mouseMoved, false);
     event.view.addEventListener("mouseup", mouseupped, false);
 
-    noDraggable(event.view);
+    disableDragging(event.view);
     noPropagation();
 
-    mousemoving = false;
-    mousedownx = event.clientX;
-    mousedowny = event.clientY;
+    mouseIsMoving = false;
+    mouseDownX = event.clientX;
+    mouseDownY = event.clientY;
 
     gesture("start");
   }
 
-  function mousemoved() {
+  function mouseMoved() {
     const e = (event as MouseEvent);
 
     preventDefault();
 
-    if (!mousemoving) {
+    if (!mouseIsMoving) {
 
-      var dx = e.clientX - mousedownx, dy = e.clientY - mousedowny;
-      mousemoving = dx * dx + dy * dy > clickDistance2;
+      var dx = e.clientX - mouseDownX, dy = e.clientY - mouseDownY;
+      mouseIsMoving = dx * dx + dy * dy > clickDistance2;
     }
 
     gestures.mouse("drag");
   }
 
   function mouseupped() {
-    event.view.removeEventListener("mousemove", mousemoved, false)
+    event.view.removeEventListener("mousemove", mouseMoved, false)
     event.view.removeEventListener("mouseup", mouseupped, false)
-    yesDraggable(event.view, mousemoving);
+    enableDragging(event.view, mouseIsMoving);
     preventDefault();
     gestures.mouse("end");
   }
 
-  function touchstarted(event: TouchEvent) {
+  function touchStarted(event: TouchEvent) {
     var touches = event.changedTouches,
       c = container.apply(this, arguments),
       n = touches.length, i, gesture;
@@ -208,7 +207,7 @@ export function createDrag() {
     }
   }
 
-  function touchmoved(event: TouchEvent) {
+  function touchMoved(event: TouchEvent) {
     var touches = event.changedTouches,
       n = touches.length, i, gesture;
 
@@ -220,7 +219,7 @@ export function createDrag() {
     }
   }
 
-  function touchended(event: TouchEvent) {
+  function touchEnded(event: TouchEvent) {
     var touches = event.changedTouches,
       n = touches.length, i, gesture;
 
@@ -253,9 +252,19 @@ export function createDrag() {
     return function gesture(type) {
       var p0 = p, n;
       switch (type) {
-        case "start": gestures[id] = gesture, n = active++; break;
-        case "end": delete gestures[id], --active;
-        case "drag": p = point(container, id), n = active; break;
+        case "start":
+          gestures[id] = gesture;
+          n = active++;
+          break;
+
+        case "end":
+          delete gestures[id];
+          --active;
+
+        case "drag":
+          p = point(container, id);
+          n = active;
+          break;
       }
 
       customEvent(new DragEvent(drag, type, s, id, n, p[0] + dx, p[1] + dy, p[0] - p0[0], p[1] - p0[1], subListeners), subListeners[type], subListeners, [type, that, args]);
@@ -264,10 +273,8 @@ export function createDrag() {
 
   drag.on = function (event: "start" | "drag" | "end", listener) {
     return listeners[event] = listener, drag;
-    // var value = listeners.on.apply(listeners, arguments);
-    // return value === listeners ? drag : value;
   };
-  
+
   drag.container = function (_) {
     return container = _, drag;
   };
