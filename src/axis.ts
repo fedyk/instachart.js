@@ -18,9 +18,9 @@ export function createLeftAxis() {
 
   function render(target: Element) {
     const ticks = getTicks();
-    const allTicks = generalUpdatePattern<number>(target, ".tick", ticks)
+    const update = generalUpdatePattern<number>(target, ".tick", ticks)
 
-    allTicks.enter((datum) => {
+    update.enter((datum) => {
       const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
       const line = g.appendChild(document.createElementNS("http://www.w3.org/2000/svg", "line"))
       const text = g.appendChild(document.createElementNS("http://www.w3.org/2000/svg", "text"))
@@ -38,10 +38,11 @@ export function createLeftAxis() {
 
       return g;
     }).merge((g, datum) => {
+      g.childNodes[1].textContent = datum + ""
       setAttribute(g, "transform", `translate(0,${scale(datum)})`)
     })
 
-    allTicks.exit(el => removeElement(el))
+    update.exit(el => removeElement(el))
 
     generalUpdatePattern<number>(target, ".tick-line", ticks).update((line) => {
       // setAttribute(line, "pathLength", pathLength + "")
