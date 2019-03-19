@@ -71,7 +71,7 @@ function point(node, event) {
   return [event.clientX - rect.left - node.clientLeft, event.clientY - rect.top - node.clientTop];
 }
 
-function customEvent(event1, listener, that = null, args: any = null) {
+function customEvent(event1, listener, that: any = null, args: any = null) {
   return listener.call(that, event1, args);
 }
 
