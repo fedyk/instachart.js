@@ -16,27 +16,31 @@ export function createInstantChart(parent: HTMLElement) {
   const gOverview = svg.appendChild(document.createElementNS("http://www.w3.org/2000/svg", "g"))
   const xScaleMain = createScale([0, 1], [0, 1])
   const yScaleMain = createScale([0, 1], [0, 1])
-  const xScaleOverview = createScale([0, 1], [0, 1])
-  const yScaleOverview = createScale([0, 1], [0, 1])  
   const xPadding = 16;
   const topPadding = 10;
   const bottomPadding = 10;
   const bodyBottomMargin = 16;
   const heightOverview = 38;
-  // const widthOverviewControl = 4;
-  const leftAxis = createLeftAxis()
-  const bottomAxis = createButtonAxis()
-  const renderOverview = createOverview().height(heightOverview)
+  const renderLeftAxis = createLeftAxis()
+  const renderBottomAxis = createButtonAxis()
+  const renderOverview = createOverview().height(heightOverview).changeSelection(changeSelection)
 
   let data: Chart;
   let width: number;
   let height: number;
-  // let xOverviewSelected: [number, number] = [0, 1];
 
-  // Add left spacing for Left Axis
   setAttribute(gLeftAxis, "transform", "translate(16,0)")
 
-  function renderChart() {
+  function changeSelection(domain: [number, number]) {
+    xScaleMain.domain(domain)
+    renderBottomAxis.domain(domain)
+    renderMainLines(gBody)
+    renderLeftAxis(gLeftAxis);
+    renderBottomAxis(gBottomAxis);
+  }
+
+  function renderMainLines(target) {
+
     // render main lines
     const mainLinePaths = data.lines.map(() => {
       return createLine()
@@ -44,76 +48,60 @@ export function createInstantChart(parent: HTMLElement) {
         .y(d => yScaleMain(d))
     });
 
-    const mainLinesGUP = generalUpdatePattern(gBody, ".line", data.lines);
+    const mainLinesGUP = generalUpdatePattern(target, ".line", data.lines);
 
-    mainLinesGUP.enter(() => {
+    mainLinesGUP.enter((d, index) => {
       const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
 
       setAttribute(path, "fill", "none"),
       setAttribute(path, "class", "line"),
-      setAttribute(path, "stroke-width", "1")
+      setAttribute(path, "stroke-width", "2")
+      setAttribute(path, "stroke", data.lines[index].color)
 
       return path;
     }).merge((path, line, index) => {
       setAttribute(path, "d", mainLinePaths[index](line.data))
-      setAttribute(path, "stroke", data.lines[index].color)
+      
     })
+  }
 
-    leftAxis(gLeftAxis);
-    bottomAxis(gBottomAxis);
+  function render() {
+    renderMainLines(gBody)
+    renderLeftAxis(gLeftAxis);
+    renderBottomAxis(gBottomAxis);
     renderOverview(gOverview);
   }
 
-  renderChart.data = function(_: RawChartData) {
+  render.data = function(_: RawChartData) {
     return data = parseRawData(_),
       renderOverview.data(data),
+      renderOverview.selection(data.xDomain),
       xScaleMain.domain(data.xDomain),
       yScaleMain.domain(data.linesDomain),
-      xScaleOverview.domain(data.xDomain),
-      yScaleOverview.domain(data.linesDomain),
-      // xOverviewSelected = reselectOverview(data.x),
-      leftAxis.domain(data.linesDomain),
-      bottomAxis.domain(data.xDomain),
-      renderChart;
+      renderLeftAxis.domain(data.linesDomain),
+      renderBottomAxis.domain(data.xDomain),
+      render;
   }
 
-  renderChart.width = function(nextWidth: number) {
+  render.width = function(nextWidth: number) {
     return width = +nextWidth,
-      renderOverview.xRange([0, width - 2 * xPadding]),
-      xScaleMain.range([xPadding, width - 2 * xPadding]),
-      xScaleOverview.range([0, width - 2 * xPadding]),
-      bottomAxis.range([0, width - 2 * xPadding]),
-      leftAxis.pathLength(width - 2 * xPadding),
+      renderOverview.xRange([xPadding, width - xPadding]),
+      xScaleMain.range([xPadding, width - xPadding]),
+      renderLeftAxis.pathLength(width - xPadding),
+      renderBottomAxis.range([0, width - xPadding]),
       svg.setAttribute("width", width + ""),
-      renderChart
+      render
   }
 
-  renderChart.height = function(nextHeight: number) {
+  render.height = function(nextHeight: number) {
     return height = nextHeight,
       yScaleMain.range([height - bottomPadding - heightOverview - bodyBottomMargin, topPadding]),
-      yScaleOverview.range([height - bottomPadding, height - bottomPadding - heightOverview]),
-      leftAxis.range([height - bottomPadding - heightOverview - bodyBottomMargin, topPadding]),
+      renderLeftAxis.range([height - bottomPadding - heightOverview - bodyBottomMargin, topPadding]),
       svg.setAttribute("height", height + ""),
       setAttribute(gBottomAxis, "transform", `translate(${xPadding},${height - bottomPadding - heightOverview - bodyBottomMargin})`),
-      setAttribute(gOverview, "transform", `translate(${xPadding},${height - bottomPadding - heightOverview})`),
-      renderChart
+      setAttribute(gOverview, "transform", `translate(0,${height - bottomPadding - heightOverview})`),
+      render
   }
 
-  function reselectOverview(data): [number, number] {
-    const dataLength = data.length;
-
-    assert(dataLength >= 2, "min 2 points is required")
-
-    if (dataLength < 10) {
-      return [data[0], data[dataLength - 1]];
-    }
-
-    const itemsBack = Math.round(dataLength / 5);
-    const end = data[dataLength - itemsBack];
-    const start = data[dataLength - 2 * itemsBack] == null ? data[0] : Math.max(data[0], data[dataLength - 2 * itemsBack])
-
-    return [start, end];
-  }
-
-  return renderChart;
+  return render;
 }
