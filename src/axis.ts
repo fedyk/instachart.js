@@ -13,7 +13,7 @@ export function createLeftAxis() {
   function getTicks() {
     const [d0, d1] = scale.domain() as number[];
 
-    return ticks(d0, d1, ticksCount);
+    return [0].concat(ticks(d0, d1, ticksCount));
   }
 
   function render(target: Element) {
@@ -66,11 +66,13 @@ export function createLeftAxis() {
 
 export function createButtonAxis() {
   let scale = createScale([0, 1], [0, 1]);
-  let ticksCount: number = 6;
 
   function getTicks() {
     const diff = 1000 * 60 * 60 * 24;
-    let [d0, d1] = (scale.domain() as number[]).map(v => v / diff);
+    const tickWidth = 60;
+    const [r0, r1] = scale.range() as [number, number];
+    const ticksCount = Math.round((r1 - r0) / tickWidth)
+    const [d0, d1] = (scale.domain() as number[]).map(v => v / diff);
 
     return ticks(d0, d1, ticksCount).map(v => v * diff);
   }
@@ -82,6 +84,12 @@ export function createButtonAxis() {
     allTicks.enter((datum) => {
       const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
       const text = g.appendChild(document.createElementNS("http://www.w3.org/2000/svg", "text"))
+      const circle = g.appendChild(document.createElementNS("http://www.w3.org/2000/svg", "circle"))
+
+      setAttribute(circle, "cx", "0")
+      setAttribute(circle, "cy", "0")
+      setAttribute(circle, "r", "1")
+      setAttribute(circle, "fill", "#0f0")
 
       setAttribute(g, "class", "tick")
       setAttribute(text, "y", "12")

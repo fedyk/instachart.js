@@ -88,7 +88,7 @@ export function createInstantChart(parent: HTMLElement) {
       renderOverview.xRange([xPadding, width - xPadding]),
       xScaleMain.range([xPadding, width - xPadding]),
       renderLeftAxis.pathLength(width - xPadding),
-      renderBottomAxis.range([0, width - xPadding]),
+      renderBottomAxis.range([xPadding, width - xPadding]),
       svg.setAttribute("width", width + ""),
       render
   }
