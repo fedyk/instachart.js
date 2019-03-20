@@ -173,3 +173,50 @@ button.outline-btn+button.outline-btn {
     transform: scale(2.5);
   }
 }
+
+.popover-container {
+  position: absolute;
+  top: 0px;
+  left: 0px;
+  padding: 4px 9px;
+  border-radius: 6px;
+  box-shadow: 0px 0px 1px 1px #ECF0F3;
+  background: #fff;
+  font-size: 12px;
+  letter-spacing: 0.1px;
+  pointer-events: none;
+}
+
+.popover-heading {
+  font-weight: normal;
+  color: #222222;
+  margin-bottom: 6px;
+}
+
+.popover-list {
+  display: flex;
+  flex-direction: row;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.popover-list-item {
+  margin: 0;
+  padding: 0;
+}
+
+.popover-list-item + .popover-list-item {
+  margin-left: 19px;
+}
+
+.popover-list-item strong {
+  display: block;
+  font-weight: 600;
+}
+
+.popover-list-item small {
+  display: block;
+  font-weight: 100;
+  font-size: 10px;
+}

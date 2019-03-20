@@ -1,4 +1,6 @@
+import { point } from "./point";
 import { assign } from "./assign";
+import { touch } from "./touch";
 
 declare const event: UIEvent;
 
@@ -57,39 +59,12 @@ DragEvent.prototype.on = function (event, listener) {
   this.listeners[event] = listener
 }
 
-function point(node, event) {
-  var svg = node.ownerSVGElement || node;
-
-  if (svg.createSVGPoint) {
-    var point = svg.createSVGPoint();
-    point.x = event.clientX, point.y = event.clientY;
-    point = point.matrixTransform(node.getScreenCTM().inverse());
-    return [point.x, point.y];
-  }
-
-  var rect = node.getBoundingClientRect();
-  return [event.clientX - rect.left - node.clientLeft, event.clientY - rect.top - node.clientTop];
-}
-
 function customEvent(event1, listener, that: any = null, args: any = null) {
   return listener.call(that, event1, args);
 }
 
 function mouse(node) {
   return point(node, event);
-}
-
-function touch(node, touches, identifier) {
-  const e = event as TouchEvent;
-  if (arguments.length < 3) identifier = touches, touches = e.changedTouches;
-
-  for (var i = 0, n = touches ? touches.length : 0, touch; i < n; ++i) {
-    if ((touch = touches[i]).identifier === identifier) {
-      return point(node, touch);
-    }
-  }
-
-  return null;
 }
 
 function noPropagation() {
@@ -137,7 +112,9 @@ export function createDrag() {
 
     if ("ontouchstart" in target) {
       (target as Element).addEventListener("touchstart", touchStarted, false);
-      (target as Element).addEventListener("touchmove", touchMoved, false);
+      (target as Element).addEventListener("touchmove", touchMoved, {
+        passive: false
+      });
       (target as Element).addEventListener("touchend", touchEnded, false);
       (target as Element).addEventListener("touchcancel", touchEnded, false);
       target.style.touchAction = "none";
@@ -210,7 +187,7 @@ export function createDrag() {
   function touchMoved(event: TouchEvent) {
     var touches = event.changedTouches,
       n = touches.length, i, gesture;
-
+    console.log("touchMoved")
     for (i = 0; i < n; ++i) {
       if (gesture = gestures[touches[i].identifier]) {
         preventDefault();

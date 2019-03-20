@@ -8,6 +8,7 @@ import { createLeftAxis, createButtonAxis } from "./axis";
 import { generalUpdatePattern } from "./general-update-pattern";
 import { createOverview } from "./overview";
 import { filter } from "./filter";
+import { createPopover } from "./popover";
 
 export function createInstantChart(parent: HTMLElement) {
   const svg = parent.appendChild(document.createElementNS("http://www.w3.org/2000/svg", "svg"))
@@ -15,6 +16,7 @@ export function createInstantChart(parent: HTMLElement) {
   const gBottomAxis = svg.appendChild(document.createElementNS("http://www.w3.org/2000/svg", "g"))
   const gBody = svg.appendChild(document.createElementNS("http://www.w3.org/2000/svg", "g"))
   const gOverview = svg.appendChild(document.createElementNS("http://www.w3.org/2000/svg", "g"))
+  const gPopover = svg.appendChild(document.createElementNS("http://www.w3.org/2000/svg", "g"))
   const xScaleMain = createScale([0, 1], [0, 1])
   const yScaleMain = createScale([0, 1], [0, 1])
   const xPadding = 16;
@@ -25,26 +27,31 @@ export function createInstantChart(parent: HTMLElement) {
   const renderLeftAxis = createLeftAxis()
   const renderBottomAxis = createButtonAxis()
   const renderOverview = createOverview().height(heightOverview).changeSelection(changeSelection)
+  const renderPopover = createPopover();
 
   let data: Chart;
   let width: number;
   let height: number;
 
   setAttribute(gLeftAxis, "transform", "translate(16,0)")
+  setAttribute(gPopover, "transform", "translate(0,0)")
 
   function render() {
     renderMainLines(gBody)
     renderLeftAxis(gLeftAxis);
     renderBottomAxis(gBottomAxis);
     renderOverview(gOverview);
+    renderPopover(gPopover);
   }
 
   function changeSelection(domain: [number, number]) {
     xScaleMain.domain(domain)
     renderBottomAxis.domain(domain)
+    renderPopover.xDomain(domain)
     renderMainLines(gBody)
     renderLeftAxis(gLeftAxis);
     renderBottomAxis(gBottomAxis);
+    renderPopover(gPopover);
   }
 
   function renderMainLines(target) {
@@ -75,6 +82,7 @@ export function createInstantChart(parent: HTMLElement) {
     return data = parseRawData(_),
       renderOverview.data(data),
       renderOverview.selection(data.xDomain),
+      renderPopover.data(data),
       xScaleMain.domain(data.xDomain),
       yScaleMain.domain(data.linesDomain),
       renderLeftAxis.domain(data.linesDomain),
@@ -85,6 +93,7 @@ export function createInstantChart(parent: HTMLElement) {
   render.width = function(nextWidth: number) {
     return width = +nextWidth,
       renderOverview.xRange([xPadding, width - xPadding]),
+      renderPopover.xRange([xPadding, width - xPadding]),
       xScaleMain.range([xPadding, width - xPadding]),
       renderLeftAxis.pathLength(width - xPadding),
       renderBottomAxis.range([xPadding, width - xPadding]),
@@ -96,6 +105,7 @@ export function createInstantChart(parent: HTMLElement) {
     return height = +nextHeight,
       yScaleMain.range([height - bottomPadding - heightOverview - bodyBottomMargin, topPadding]),
       renderLeftAxis.range([height - bottomPadding - heightOverview - bodyBottomMargin, topPadding]),
+      renderPopover.yRange([height - bottomPadding - heightOverview - bodyBottomMargin, topPadding]),
       svg.setAttribute("height", height + ""),
       setAttribute(gBottomAxis, "transform", `translate(${xPadding},${height - bottomPadding - heightOverview - bodyBottomMargin})`),
       setAttribute(gOverview, "transform", `translate(0,${height - bottomPadding - heightOverview})`),
@@ -112,6 +122,8 @@ export function createInstantChart(parent: HTMLElement) {
       yScaleMain.domain(data.linesDomain),
       renderLeftAxis.domain(data.linesDomain),
       renderOverview.data(data),
+      renderPopover.data(data),
+      renderPopover.yDomain(data.linesDomain),
       render;
   }
 
