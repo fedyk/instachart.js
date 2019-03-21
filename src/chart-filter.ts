@@ -2,6 +2,7 @@ import { assign } from "./assign";
 import { RawChartData } from "./types";
 import { addClass, removeClass } from "./class-list";
 import { generalUpdatePattern } from "./general-update-pattern";
+import { createRipple } from "./ripple";
 
 function emptyHandleFilterChange(chatId: string, visible: boolean) { }
 
@@ -17,7 +18,7 @@ export function createChartFilter(data: RawChartData) {
       button.className = "outline-btn";
 
       listenClick(button, datum.id)
-      addRipple(button)
+      createRipple(button)
       renderButtonIcon(button, datum.visible, datum.color)
       renderButtonLabel(button, datum.name)
 
@@ -25,43 +26,8 @@ export function createChartFilter(data: RawChartData) {
     }).merge(function (button, datum) {
       renderButtonIcon(button, datum.visible, datum.color)
     })
-  }
 
-  function addRipple(button: HTMLButtonElement) {
-    button.addEventListener("click", animate, false);
-
-    function animate(e) {
-      let ripple = button.querySelector<HTMLSpanElement>(".ripple");
-
-      if (!ripple) {
-        ripple = button.insertBefore<HTMLSpanElement>(addClass(document.createElement("span"), "ripple"), button.firstChild);
-      }
-
-      removeClass(ripple, "animate")
-
-
-      if (!ripple.offsetHeight && !ripple.offsetWidth) {
-        const d = Math.max(button.offsetHeight, button.offsetWidth);
-        ripple.style.height = `${d}px`;
-        ripple.style.width = `${d}px`;
-      }
-
-      const rect = button.getBoundingClientRect();
-
-      const offset = {
-        top: rect.top + document.body.scrollTop,
-        left: rect.left + document.body.scrollLeft
-      }
-
-      const x = e.pageX - offset.left - ripple.offsetWidth / 2;
-      const y = e.pageY - offset.top - ripple.offsetHeight / 2;
-
-
-      ripple.style.top = `${y}px`;
-      ripple.style.left = `${x}px`;
-      button.style.overflow = "hidden";
-      addClass(ripple, "animate");
-    }
+    return render;
   }
 
   function extractCharts() {
@@ -147,8 +113,10 @@ export function createChartFilter(data: RawChartData) {
   }
 
   render.handleFilterChange = function (_) {
-    return arguments.length === 1 ? (handleFilterChange = _, render) : handleFilterChange;
+    return _ ? (handleFilterChange = _, render) : handleFilterChange;
   }
+
+  render.render = render;
 
   return render;
 }

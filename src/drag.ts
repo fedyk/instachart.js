@@ -1,6 +1,7 @@
 import { point } from "./point";
 import { assign } from "./assign";
 import { touch } from "./touch";
+import { preventDefault } from "./prevent-default";
 
 declare const event: UIEvent;
 
@@ -71,10 +72,7 @@ function noPropagation() {
   event.stopImmediatePropagation();
 }
 
-function preventDefault() {
-  event.preventDefault();
-  event.stopImmediatePropagation();
-}
+
 
 
 function defaultContainer() {

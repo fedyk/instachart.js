@@ -21,7 +21,7 @@ export function createInstantChart(parent: HTMLElement) {
   const xPadding = 16;
   const topPadding = 10;
   const bottomPadding = 10;
-  const bodyBottomMargin = 16;
+  const bodyBottomMargin = 43;
   const heightOverview = 38;
   const renderLeftAxis = createLeftAxis()
   const renderBottomAxis = createButtonAxis()
@@ -41,6 +41,7 @@ export function createInstantChart(parent: HTMLElement) {
     renderBottomAxis(gBottomAxis);
     renderOverview(gOverview);
     renderPopover(gPopover);
+    return render
   }
 
   function changeSelection(domain: [number, number]) {
@@ -126,6 +127,8 @@ export function createInstantChart(parent: HTMLElement) {
       renderPopover.yDomain(data.linesDomain),
       render;
   }
+
+  render.render = render
 
   return render;
 }

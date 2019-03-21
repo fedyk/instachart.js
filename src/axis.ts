@@ -32,7 +32,7 @@ export function createLeftAxis() {
       setAttribute(text, "y", "-5")
       setAttribute(text, "class", "tick-text")
       setAttribute(text, "fill", "#96A2AA")
-      setAttribute(text, "font-size", "10")
+      setAttribute(text, "font-size", "9")
 
       text.textContent = datum + "";
 
@@ -109,9 +109,10 @@ export function createButtonAxis() {
       const text = g.appendChild(document.createElementNS("http://www.w3.org/2000/svg", "text"))
 
       setAttribute(g, "class", "tick")
-      setAttribute(text, "y", "12")
+      setAttribute(text, "x", "0")
+      setAttribute(text, "y", "27")
       setAttribute(text, "fill", "#96A2AA")
-      setAttribute(text, "font-size", "10")
+      setAttribute(text, "font-size", "9")
       setAttribute(text, "text-anchor", "middle")
 
       return g;
