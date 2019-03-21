@@ -1,4 +1,3 @@
-import { assert } from "./assert";
 import { createLine } from "./line";
 import { createScale } from "./scale";
 import { setAttribute } from "./set-attribute";
@@ -107,7 +106,8 @@ export function createInstantChart(parent: HTMLElement) {
       renderLeftAxis.range([height - bottomPadding - heightOverview - bodyBottomMargin, topPadding]),
       renderPopover.yRange([height - bottomPadding - heightOverview - bodyBottomMargin, topPadding]),
       svg.setAttribute("height", height + ""),
-      setAttribute(gBottomAxis, "transform", `translate(${xPadding},${height - bottomPadding - heightOverview - bodyBottomMargin})`),
+      setAttribute(gBody, "transform", `translate(0,0)`),
+      setAttribute(gBottomAxis, "transform", `translate(0,${height - bottomPadding - heightOverview - bodyBottomMargin})`),
       setAttribute(gOverview, "transform", `translate(0,${height - bottomPadding - heightOverview})`),
       render
   }

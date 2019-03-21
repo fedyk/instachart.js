@@ -86,7 +86,6 @@ function defaultSubject(d) {
 }
 
 export function createDrag() {
-  // var filter = defaultFilter;
   let container = defaultContainer;
   let subject = defaultSubject;
   const gestures: {
@@ -94,7 +93,6 @@ export function createDrag() {
   } = {
     mouse: noop
   }
-  // listeners = dispatch("start", "drag", "end"),
   const listeners = {
     start: noop,
     drag: noop,
@@ -129,7 +127,7 @@ export function createDrag() {
       return;
     }
 
-    var gesture = beforeStart("mouse", container.apply(this, arguments), mouse, this, arguments);
+    let gesture = beforeStart("mouse", container.apply(this, arguments), mouse, this, arguments);
 
     if (!gesture) {
       return;
@@ -156,7 +154,7 @@ export function createDrag() {
 
     if (!mouseIsMoving) {
 
-      var dx = e.clientX - mouseDownX, dy = e.clientY - mouseDownY;
+      let dx = e.clientX - mouseDownX, dy = e.clientY - mouseDownY;
       mouseIsMoving = dx * dx + dy * dy > clickDistance2;
     }
 
@@ -172,7 +170,7 @@ export function createDrag() {
   }
 
   function touchStarted(event: TouchEvent) {
-    var touches = event.changedTouches,
+    let touches = event.changedTouches,
       c = container.apply(this, arguments),
       n = touches.length, i, gesture;
 
@@ -185,9 +183,9 @@ export function createDrag() {
   }
 
   function touchMoved(event: TouchEvent) {
-    var touches = event.changedTouches,
+    let touches = event.changedTouches,
       n = touches.length, i, gesture;
-    console.log("touchMoved")
+
     for (i = 0; i < n; ++i) {
       if (gesture = gestures[touches[i].identifier]) {
         preventDefault();
@@ -197,7 +195,7 @@ export function createDrag() {
   }
 
   function touchEnded(event: TouchEvent) {
-    var touches = event.changedTouches,
+    let touches = event.changedTouches,
       n = touches.length, i, gesture;
 
     if (touchending) {
@@ -227,7 +225,7 @@ export function createDrag() {
     })) return;
 
     return function gesture(type) {
-      var p0 = p, n;
+      let p0 = p, n;
       switch (type) {
         case "start":
           gestures[id] = gesture;

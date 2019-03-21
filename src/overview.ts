@@ -152,8 +152,11 @@ export function createOverview() {
 
       return rect
     }).merge((rect, datum) => {
-      setAttribute(rect, "x", x(datum[0]) + (HANDLER_WIDTH / 2) + "")
-      setAttribute(rect, "width", x(datum[1]) - x(datum[0]) - 2 * (HANDLER_WIDTH / 2) + "")
+      const rectX = x(datum[0]) + (HANDLER_WIDTH / 2)
+      const rectW = Math.max(x(datum[1]) - x(datum[0]) - 2 * (HANDLER_WIDTH / 2), 0)
+
+      setAttribute(rect, "x", rectX + "")
+      setAttribute(rect, "width", rectW + "")
       setAttribute(rect, "height", height + 2 * HANDLE_EXTRA_SPACE + "")
     })
   }
@@ -172,8 +175,6 @@ export function createOverview() {
       // setAttribute(rect, "fill", "#ccc")
       setAttribute(rect, "class", "overview-handlers")
       setAttribute(rect, "y", 0 - HANDLE_EXTRA_SPACE + "")
-
-      console.log(`render i=${i}`)
 
       drag(rect).container(() => target).on("start", (event) => {
         const r0 = selection[Number(!i)];

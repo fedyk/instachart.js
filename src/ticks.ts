@@ -3,11 +3,10 @@ const e5 = Math.sqrt(10);
 const e2 = Math.sqrt(2);
 
 export function ticks(start, stop, count) {
-  var reverse;
-  var i = -1;
-  var n;
-  var ticks;
-  var step;
+  let i = -1;
+  let n;
+  let ticks;
+  let step;
 
   stop = +stop;
   start = +start;
@@ -15,12 +14,6 @@ export function ticks(start, stop, count) {
 
   if (start === stop && count > 0) {
     return [start];
-  }
-
-  if (reverse = stop < start) {
-    n = start;
-    start = stop;
-    stop = n;
   }
 
   if ((step = tickIncrement(start, stop, count)) === 0 || !isFinite(step)) {
@@ -39,37 +32,15 @@ export function ticks(start, stop, count) {
     while (++i < n) ticks[i] = (start - i) / step;
   }
 
-  if (reverse) {
-    ticks.reverse();
-  }
-
   return ticks;
 }
 
 export function tickIncrement(start, stop, count) {
-  var step = (stop - start) / Math.max(0, count)
-  var power = Math.floor(Math.log(step) / Math.LN10);
-  var error = step / Math.pow(10, power);
+  let step = (stop - start) / Math.max(0, count)
+  let power = Math.floor(Math.log(step) / Math.LN10);
+  let error = step / Math.pow(10, power);
 
   return power >= 0
     ? (error >= e10 ? 10 : error >= e5 ? 5 : error >= e2 ? 2 : 1) * Math.pow(10, power)
     : -Math.pow(10, -power) / (error >= e10 ? 10 : error >= e5 ? 5 : error >= e2 ? 2 : 1);
-}
-
-export function tickStep(start: number, stop: number, count: number) {
-  const step0 = Math.abs(stop - start) / Math.max(0, count);
-  let step1 = Math.pow(10, Math.floor(Math.log(step0) / Math.LN10));
-  let error = step0 / step1;
-
-  if (error >= e10) {
-    step1 *= 10;
-  }
-  else if (error >= e5) {
-    step1 *= 5;
-  }
-  else if (error >= e2) {
-    step1 *= 2;
-  }
-
-  return stop < start ? -step1 : step1;
 }

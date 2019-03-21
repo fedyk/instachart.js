@@ -49,9 +49,9 @@ export function createPopover() {
     rect.addEventListener("mouseleave", mouseLeaved, false)
     
     if ("ontouchstart" in rect) {
-      (rect as Element).addEventListener("touchstart", touchStarted, {passive: false});
-      (rect as Element).addEventListener("touchmove", touchMoved, {passive: false});
-      (rect as Element).addEventListener("touchend", touchEnded, {passive: false});
+      (rect as Element).addEventListener("touchstart", touchStarted, false);
+      (rect as Element).addEventListener("touchmove", touchMoved, false);
+      (rect as Element).addEventListener("touchend", touchEnded, false);
       (rect as Element).addEventListener("touchcancel", touchEnded, false);
       rect.style.touchAction = "none";
       rect.style["-webkit-tap-highlight-color"] = "rgba(0,0,0,0)";
