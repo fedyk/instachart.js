@@ -2,12 +2,13 @@ import { createLine } from "./line";
 import { createScale } from "./scale";
 import { setAttribute } from "./set-attribute";
 import { parseRawData, extendLinesDomain } from "./parse-raw-data";
-import { RawChartData, Chart, Line } from "./types";
+import { RawChartData, Chart } from "./types";
 import { createLeftAxis, createButtonAxis } from "./axis";
 import { generalUpdatePattern } from "./general-update-pattern";
 import { createOverview } from "./overview";
 import { filter } from "./filter";
 import { createPopover } from "./popover";
+import { throttle } from "./throttle";
 
 export function createInstantChart(parent: HTMLElement) {
   const svg = parent.appendChild(document.createElementNS("http://www.w3.org/2000/svg", "svg"))
@@ -25,7 +26,7 @@ export function createInstantChart(parent: HTMLElement) {
   const heightOverview = 38;
   const renderLeftAxis = createLeftAxis()
   const renderBottomAxis = createButtonAxis()
-  const renderOverview = createOverview().height(heightOverview).changeSelection(changeSelection)
+  const renderOverview = createOverview().height(heightOverview).changeSelection(throttle(changeSelection, 1000 / 60))
   const renderPopover = createPopover();
 
   let data: Chart;

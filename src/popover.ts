@@ -5,7 +5,6 @@ import { generalUpdatePattern } from "./general-update-pattern";
 import { point } from "./point";
 import { longDate } from "./time";
 import { removeElement } from "./remove-element";
-import { addClass } from "./class-list";
 import { touch } from "./touch";
 
 export function createPopover() {
@@ -89,8 +88,6 @@ export function createPopover() {
       }
 
       const px = x.invert(p[0])
-
-      // noPropagation()
       
       lineIsVisible = true;
       setLineX(px)
@@ -267,7 +264,10 @@ export function createPopover() {
   }
 
   function updatePopoverContainerPos(target: Element) {
-    const { top, left } = target.getBoundingClientRect();
+    let { top, left } = target.getBoundingClientRect();
+
+    top += pageYOffset;
+    left += pageXOffset;
  
     container.style.top = top + "px";
     container.style.left = left + "px";

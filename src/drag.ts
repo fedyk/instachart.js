@@ -2,6 +2,7 @@ import { point } from "./point";
 import { assign } from "./assign";
 import { touch } from "./touch";
 import { preventDefault } from "./prevent-default";
+import { noPropagation } from "./no-propagation";
 
 declare const event: UIEvent;
 
@@ -67,13 +68,6 @@ function customEvent(event1, listener, that: any = null, args: any = null) {
 function mouse(node) {
   return point(node, event);
 }
-
-function noPropagation() {
-  event.stopImmediatePropagation();
-}
-
-
-
 
 function defaultContainer() {
   return this.parentNode;
