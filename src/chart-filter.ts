@@ -113,7 +113,7 @@ export function createChartFilter(data: RawChartData) {
   }
 
   render.handleFilterChange = function (_) {
-    return _ ? (handleFilterChange = _, render) : handleFilterChange;
+    return handleFilterChange = _, render;
   }
 
   render.render = render;
