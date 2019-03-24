@@ -1,24 +1,22 @@
-import { ticks } from "./ticks";
+import { numberTicks } from "./number-ticks";
 import { createScale } from "./scale";
 import { setAttribute } from "./set-attribute";
 import { generalUpdatePattern } from "./general-update-pattern";
-import { formatDate } from "./time";
 import { removeElement } from "./remove-element";
+import { createTransition } from "./transition";
+import { createTimeTicks } from "./time-ticks";
 
 export function createLeftAxis() {
-  let scale = createScale([0, 1], [0, 1]);
+  // const enterTransition = createTransition().duration(150);
+  // const exitTransition = createTransition().duration(100);
+  const scale = createScale([0, 1], [0, 1]);
+  const y = createScale([0, 1], [0, 1])
   let ticksCount: number = 6;
   let pathLength = 100;
-
-  function getTicks() {
-    const [d0, d1] = scale.domain() as number[];
-
-    return [0].concat(ticks(d0, d1, ticksCount));
-  }
+  let ticks: number[] = []
 
   function render(target: Element) {
-    const ticks = getTicks();
-    const update = generalUpdatePattern<number>(target, ".tick", ticks)
+    const update = generalUpdatePattern<number>(target, ".tick", ticks, (datum) => datum + "")
 
     update.enter((datum) => {
       const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
@@ -26,6 +24,8 @@ export function createLeftAxis() {
       const text = g.appendChild(document.createElementNS("http://www.w3.org/2000/svg", "text"))
 
       setAttribute(g, "class", "tick")
+      // setAttribute(g, "fill-opacity", "0")
+      // enterTransition(g, "fill-opacity", "1")
       setAttribute(line, "class", "tick-line")
       setAttribute(line, "stroke", "#ECF0F3")
       setAttribute(line, "stroke-width", "1")
@@ -34,15 +34,26 @@ export function createLeftAxis() {
       setAttribute(text, "fill", "#96A2AA")
       setAttribute(text, "font-size", "9")
 
-      text.textContent = datum + "";
+      text.textContent = format(datum);
 
       return g;
     }).merge((g, datum) => {
-      g.childNodes[1].textContent = datum + ""
-      setAttribute(g, "transform", `translate(0,${scale(datum)})`)
+      if (datum) {
+        g.childNodes[1].textContent = format(datum)
+      }
+      setAttribute(g, "transform", `translate(0,${y(datum)})`)
     })
 
-    update.exit(el => removeElement(el))
+    update.exit((g, datum) => {
+      // const t = exitTransition(g, "fill-opacity", "0")
+
+      // setAttribute(g, "transform", `translate(0,${y(datum)})`)
+      removeElement(g)
+
+      // if (t) {
+      //   t.on("end", () => removeElement(g))
+      // }
+    })
 
     generalUpdatePattern<number>(target, ".tick-line", ticks).update((line) => {
       // setAttribute(line, "pathLength", pathLength + "")
@@ -50,12 +61,26 @@ export function createLeftAxis() {
     })
   }
 
+  function getTicks() {
+    const [d0, d1] = scale.domain() as number[];
+
+    return numberTicks(d0, d1, ticksCount);
+  }
+
+  function format(d: number) {
+    return d < 999 ? d + "" : d < 999999 ? (d / 1000).toFixed(1) + "k" : d < 999999999 ? (d / 1000000).toFixed(1) + "M" : "NaN";
+  }
+
   render.domain = function(_: [number, number]) {
-    return scale.domain(_), render
+    return scale.domain(_), ticks = getTicks(), y.domain([ticks[0], ticks[ticks.length - 1]]), render
   }
 
   render.range = function(_: [number, number]) {
-    return scale.range(_), render
+    return scale.range(_), y.range(_), render
+  }
+
+  render.y = function() {
+    return y
   }
 
   render.pathLength = function(_) {
@@ -65,50 +90,32 @@ export function createLeftAxis() {
   return render;
 }
 
-const second = 1000;
-const minute = 60 * second;
-const hour = 60 * minute
-const day = 24 * hour
 
 export function createButtonAxis() {
-  let scale = createScale([0, 1], [0, 1]);
-
-  function getTicks() {
-    const [d0, d1] = scale.domain() as [number, number];
-    const [r0, r1] = scale.range() as [number, number];
-    const tickWidth = 60;
-    const ticksCount = Math.floor((r1 - r0) / tickWidth);
-    let step = (d1 - d0) / Math.max(0, ticksCount);
-    let i = -1;
-    let start;
-    let stop;
-    let ticks;
-    let n;
-    
-    if ((step = Math.floor(step / day) * day) === 0 || !isFinite(step)) {
-      step = day
-    }
-
-    start = Math.ceil(d0 / step);
-    stop = Math.floor(d1 / step);
-    n = Math.ceil(stop - start + 1)
-    ticks = new Array(n);
-
-    while (++i < n)
-      ticks[i] = (start + i) * step;
-
-    return ticks;
-  }
+  const enterTransition = createTransition().duration(150);
+  const exitTransition = createTransition().duration(100);
+  const scale = createScale([0, 1], [0, 1]);
+  const timeTicks = createTimeTicks(scale);
+  let initiallyRendered = false;
 
   function render(target: Element) {
-    const ticks = getTicks()
-    const allTicks = generalUpdatePattern<number>(target, ".tick", ticks)
+    const ticks = timeTicks.ticks(6) as Date[]
+    const allTicks = generalUpdatePattern<Date>(target, ".tick", ticks, (datum) => datum + "")
 
     allTicks.enter((datum) => {
       const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
       const text = g.appendChild(document.createElementNS("http://www.w3.org/2000/svg", "text"))
 
       setAttribute(g, "class", "tick")
+      
+      if (initiallyRendered) {
+        setAttribute(g, "fill-opacity", "0")
+        enterTransition(g, "fill-opacity", "1")
+      }
+      else {
+        setAttribute(g, "fill-opacity", "1")
+      }
+
       setAttribute(text, "x", "0")
       setAttribute(text, "y", "27")
       setAttribute(text, "fill", "#96A2AA")
@@ -117,14 +124,29 @@ export function createButtonAxis() {
 
       return g;
     }).merge((g, datum) => {
-      setAttribute(g, "transform", `translate(${scale(datum)},0)`)
+      setAttribute(g, "transform", `translate(${scale(datum.getTime())},0)`)
 
       if (g.firstChild) {
-        g.firstChild.textContent = formatDate(datum);
+        g.firstChild.textContent = timeTicks.tickFormat(datum);
       }
     })
 
-    allTicks.exit(el => removeElement(el))
+    allTicks.exit((g, datum) => {
+      if (datum) {
+        setAttribute(g, "transform", `translate(${scale(datum.getTime())},0)`)
+      }
+
+      removeElement(g)
+
+      const t = exitTransition(g, "fill-opacity", "0")
+
+      if (t) {
+        t.on("end", () => removeElement(g))
+        t.on("cancel", () => removeElement(g))
+      }
+    })
+
+    initiallyRendered = true;
   }
 
   render.domain = function(_: [number, number]) {
