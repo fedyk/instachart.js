@@ -1,4 +1,4 @@
-import { EventEmitter } from "events";
+import { EventEmitter } from "./event-emitter";
 import { setAttribute } from "./set-attribute";
 
 export function createTransition() {
