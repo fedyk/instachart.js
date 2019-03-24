@@ -5,8 +5,8 @@ import { createChartFilter } from "./chart-filter";
 export function start(data: RawChartData[]) {
   const width = window.innerWidth;
   const n = data.length;
-  const charts = new Array(n);
-  const filters = new Array(n);
+  const charts = [].map(createInstantChart)
+  const filters = [].map(createChartFilter)
 
   for (let i = 0; i < n; i++) {
     const d = data[i];
@@ -30,7 +30,8 @@ export function start(data: RawChartData[]) {
 
   function handleFilterChange(index) {
     return function (chatId, visible) {
-      charts[index].toggleLine(chatId, visible)()
+      charts[index].toggleLine(chatId, visible)
+      charts[index]()
     }
   }
 }
