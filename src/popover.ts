@@ -21,7 +21,7 @@ export function createPopover() {
     renderLine(target)
     renderCircles(target)
     renderPopoverContainer(container);
-    updatePopoverContainerPos((target as SVGGElement).ownerSVGElement as Element);
+    setTimeout(() => updatePopoverContainerPos((target as SVGGElement).ownerSVGElement as Element), 0); 
   }
 
   function setLineX(rawX) {
@@ -274,10 +274,7 @@ export function createPopover() {
   }
 
   render.data = function (_: Chart) {
-    return data = _,
-      x.domain(data.xDomain),
-      y.domain(data.linesDomain),
-      render;
+    return data = _, render;
   }
 
   render.xRange = function (_: [number, number]) {
