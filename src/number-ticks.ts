@@ -2,7 +2,7 @@ const e10 = Math.sqrt(50);
 const e5 = Math.sqrt(10);
 const e2 = Math.sqrt(2);
 
-export function ticks(start, stop, count) {
+export function numberTicks(start, stop, count) {
   let i = -1;
   let n;
   let ticks;
@@ -21,10 +21,11 @@ export function ticks(start, stop, count) {
   }
 
   if (step > 0) {
-    start = Math.ceil(start / step);
-    stop = Math.floor(stop / step);
+    start = Math.ceil(start / step) - 1;
+    stop = Math.floor(stop / step) + 1;
     ticks = new Array(n = Math.ceil(stop - start + 1));
-    while (++i < n) ticks[i] = (start + i) * step;
+    while (++i < n)
+      ticks[i] = (start + i) * step;
   } else {
     start = Math.floor(start * step);
     stop = Math.ceil(stop * step);
