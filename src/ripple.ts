@@ -1,4 +1,5 @@
 import { addClass, removeClass } from "./class-list";
+import { point } from "./point";
 
 export function createRipple(button: HTMLButtonElement) {
   button.addEventListener("click", animate, false);
@@ -12,26 +13,13 @@ export function createRipple(button: HTMLButtonElement) {
 
     removeClass(ripple, "animate")
 
+    const d = Math.max(button.offsetHeight, button.offsetWidth);
+    const [x, y] = point(button, event);
 
-    if (!ripple.offsetHeight && !ripple.offsetWidth) {
-      const d = Math.max(button.offsetHeight, button.offsetWidth);
-      ripple.style.height = `${d}px`;
-      ripple.style.width = `${d}px`;
-    }
-
-    const rect = button.getBoundingClientRect();
-
-    const offset = {
-      top: rect.top + document.body.scrollTop,
-      left: rect.left + document.body.scrollLeft
-    }
-
-    const x = e.pageX - offset.left - ripple.offsetWidth / 2;
-    const y = e.pageY - offset.top - ripple.offsetHeight / 2;
-
-
-    ripple.style.top = `${y}px`;
-    ripple.style.left = `${x}px`;
+    ripple.style.top = `${y - d / 2}px`;
+    ripple.style.left = `${x - d / 2}px`;
+    ripple.style.height = `${d}px`;
+    ripple.style.width = `${d}px`;
     button.style.overflow = "hidden";
     addClass(ripple, "animate");
   }
