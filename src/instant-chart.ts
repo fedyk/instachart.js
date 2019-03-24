@@ -1,14 +1,12 @@
-import { createLine } from "./line";
-import { createScale } from "./scale";
 import { setAttribute } from "./set-attribute";
 import { parseRawData, extendLinesDomain } from "./parse-raw-data";
 import { RawChartData, Chart } from "./types";
 import { createLeftAxis, createButtonAxis } from "./axis";
-import { generalUpdatePattern } from "./general-update-pattern";
 import { createOverview } from "./overview";
 import { filter } from "./filter";
 import { createPopover } from "./popover";
 import { throttle } from "./throttle";
+import { createMainLines } from "./main-lines";
 
 export function createInstantChart(parent: HTMLElement) {
   const svg = parent.appendChild(document.createElementNS("http://www.w3.org/2000/svg", "svg"))
@@ -17,15 +15,14 @@ export function createInstantChart(parent: HTMLElement) {
   const gBody = svg.appendChild(document.createElementNS("http://www.w3.org/2000/svg", "g"))
   const gOverview = svg.appendChild(document.createElementNS("http://www.w3.org/2000/svg", "g"))
   const gPopover = svg.appendChild(document.createElementNS("http://www.w3.org/2000/svg", "g"))
-  const xScaleMain = createScale([0, 1], [0, 1])
-  const yScaleMain = createScale([0, 1], [0, 1])
   const xPadding = 16;
-  const topPadding = 10;
+  const topPadding = 20;
   const bottomPadding = 10;
   const bodyBottomMargin = 43;
   const heightOverview = 38;
   const renderLeftAxis = createLeftAxis()
   const renderBottomAxis = createButtonAxis()
+  const renderMainLines = createMainLines();
   const renderOverview = createOverview().height(heightOverview).changeSelection(throttle(changeSelection, 1000 / 60))
   const renderPopover = createPopover();
 
@@ -46,7 +43,7 @@ export function createInstantChart(parent: HTMLElement) {
   }
 
   function changeSelection(domain: [number, number]) {
-    xScaleMain.domain(domain)
+    renderMainLines.xDomain(domain)
     renderBottomAxis.domain(domain)
     renderPopover.xDomain(domain)
     renderMainLines(gBody)
@@ -55,47 +52,29 @@ export function createInstantChart(parent: HTMLElement) {
     renderPopover(gPopover);
   }
 
-  function renderMainLines(target) {
-    const mainLinePaths = data.lines.map(() => {
-      return createLine()
-        .x((d, i) => xScaleMain(data.x[i]))
-        .y(d => yScaleMain(d))
-    });
-
-    const update = generalUpdatePattern(target, ".line", data.lines);
-
-    update.enter((d, index) => {
-      const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-
-      setAttribute(path, "fill", "none"),
-      setAttribute(path, "class", "line"),
-      setAttribute(path, "stroke-width", "2")
-      setAttribute(path, "stroke", data.lines[index].color)
-
-      return path;
-    }).merge((path, line, index) => {
-      setAttribute(path, "d", mainLinePaths[index](line.data))
-      setAttribute(path, "stroke-opacity", line.visible ? "1" : "0")
-    })
-  }
-
   render.data = function(_: RawChartData) {
-    return data = parseRawData(_),
-      renderOverview.data(data),
-      renderOverview.selection(data.xDomain),
-      renderPopover.data(data),
-      xScaleMain.domain(data.xDomain),
-      yScaleMain.domain(data.linesDomain),
+    data = parseRawData(_)
+
+    const selection: [number, number] = data.x.length > 2 ? [data.x[data.x.length - Math.round(data.x.length / 4)], data.x[data.x.length - 1]] : data.xDomain;
+
+    return renderOverview.data(data),
+      renderOverview.selection(selection),
       renderLeftAxis.domain(data.linesDomain),
-      renderBottomAxis.domain(data.xDomain),
+      renderMainLines.data(data),
+      renderMainLines.yDomain(renderLeftAxis.y().domain() as [number, number]),
+      renderMainLines.xDomain(selection),
+      renderPopover.data(data),
+      renderPopover.xDomain(selection),
+      renderPopover.yDomain(renderLeftAxis.y().domain() as [number, number]),
+      renderBottomAxis.domain(selection),
       render;
   }
 
   render.width = function(nextWidth: number) {
     return width = +nextWidth,
+      renderMainLines.xRange([xPadding, width - xPadding]),
       renderOverview.xRange([xPadding, width - xPadding]),
       renderPopover.xRange([xPadding, width - xPadding]),
-      xScaleMain.range([xPadding, width - xPadding]),
       renderLeftAxis.pathLength(width - xPadding),
       renderBottomAxis.range([xPadding, width - xPadding]),
       svg.setAttribute("width", width + ""),
@@ -104,8 +83,8 @@ export function createInstantChart(parent: HTMLElement) {
 
   render.height = function(nextHeight: number) {
     return height = +nextHeight,
-      yScaleMain.range([height - bottomPadding - heightOverview - bodyBottomMargin, topPadding]),
       renderLeftAxis.range([height - bottomPadding - heightOverview - bodyBottomMargin, topPadding]),
+      renderMainLines.yRange([height - bottomPadding - heightOverview - bodyBottomMargin, topPadding]),
       renderPopover.yRange([height - bottomPadding - heightOverview - bodyBottomMargin, topPadding]),
       svg.setAttribute("height", height + ""),
       setAttribute(gBody, "transform", `translate(0,0)`),
@@ -121,11 +100,12 @@ export function createInstantChart(parent: HTMLElement) {
       }
     }
     return data.linesDomain = extendLinesDomain(filter(data.lines, line => line.visible === true)),
-      yScaleMain.domain(data.linesDomain),
       renderLeftAxis.domain(data.linesDomain),
+      renderMainLines.data(data),
+      renderMainLines.yDomain(renderLeftAxis.y().domain() as [number, number]),
       renderOverview.data(data),
       renderPopover.data(data),
-      renderPopover.yDomain(data.linesDomain),
+      renderPopover.yDomain(renderLeftAxis.y().domain() as [number, number]),
       render;
   }
 
