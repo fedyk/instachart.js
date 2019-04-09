@@ -4,18 +4,26 @@
   "description": "Fast mobile-friendly chart",
   "main": "dist/index.js",
   "scripts": {
+    "build": "rollup -c",
     "start": "webpack --watch",
     "test": "jest"
   },
   "author": "Andrii Fedyk",
   "license": "ISC",
   "devDependencies": {
+    "@ampproject/rollup-plugin-closure-compiler": "^0.8.5",
     "@types/jest": "^24.0.11",
     "jest": "^24.5.0",
+    "rollup": "^1.7.0",
+    "rollup-plugin-typescript2": "^0.20.1",
     "ts-jest": "^24.0.0",
     "ts-loader": "^5.3.3",
-    "typescript": "^3.3.3333",
+    "typescript": "^3.3.4000",
     "webpack": "^4.29.6",
     "webpack-cli": "^3.2.3"
+  },
+  "dependencies": {
+    "d3-brush": "^1.0.6",
+    "d3-scale": "^3.0.0"
   }
 }
