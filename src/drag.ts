@@ -9,7 +9,7 @@ declare const event: UIEvent;
 function noop() { }
 
 function disableDragging(view: Window) {
-  const root = view.document.documentElement;
+  const root = view.document.documentElement as any;
 
   view.addEventListener("dragstart", preventDefault, false);
 
@@ -23,7 +23,7 @@ function disableDragging(view: Window) {
 }
 
 export function enableDragging(view: Window, noclick) {
-  const root = view.document.documentElement;
+  const root = view.document.documentElement as any;
 
   view.removeEventListener("dragstart", preventDefault, false)
 
@@ -129,8 +129,8 @@ export function createDrag() {
     event.view.addEventListener("mousemove", mouseMoved, false);
     event.view.addEventListener("mouseup", mouseupped, false);
 
-    disableDragging(event.view);
-    noPropagation();
+    // disableDragging(event.view);
+    // noPropagation();
 
     mouseIsMoving = false;
     mouseDownX = event.clientX;
@@ -156,7 +156,7 @@ export function createDrag() {
   function mouseupped() {
     event.view.removeEventListener("mousemove", mouseMoved, false)
     event.view.removeEventListener("mouseup", mouseupped, false)
-    enableDragging(event.view, mouseIsMoving);
+    // enableDragging(event.view, mouseIsMoving);
     preventDefault();
     gestures.mouse("end");
   }

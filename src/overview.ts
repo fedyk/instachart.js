@@ -6,18 +6,20 @@ import { generalUpdatePattern } from "./general-update-pattern";
 import { setAttribute } from "./set-attribute";
 import { removeElement } from "./remove-element";
 
+const OVERVIEW_HEIGHT = 38;
 const CONTROL_WIDTH = 4;
 const HANDLER_WIDTH = 16;
 const HANDLE_EXTRA_SPACE = 5;
 
 export function createOverview() {
-  let height = 38;
   let data: Chart
   let lines = [].map(() => createLine())
   let x = createScale([0, 1], [0, 1])
-  let y = createScale([0, 1], [height, 0])
+  let y = createScale([0, 1], [OVERVIEW_HEIGHT, 0])
   let selection: [number, number] = [0, 1]
-  let changeSelection = function(_) {}
+  let changeSelection = function(_) {
+
+  }
 
   function renderLines(target) {
     const allLines = generalUpdatePattern<Line>(target, ".line", data.lines);
@@ -45,7 +47,7 @@ export function createOverview() {
       const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect")
 
       setAttribute(rect, "width", CONTROL_WIDTH + "")
-      setAttribute(rect, "height", height + "")
+      setAttribute(rect, "height", OVERVIEW_HEIGHT + "")
       setAttribute(rect, "class", "overview-control")
       setAttribute(rect, "fill", "#C6DCEB")
       setAttribute(rect, "fill-opacity", "0.6")
@@ -60,7 +62,7 @@ export function createOverview() {
   function renderSelectionTopBorder(target) {
     const update = generalUpdatePattern<[number, [number, number]]>(target, ".overview-control-border", [
       [0, selection],
-      [height, selection]
+      [OVERVIEW_HEIGHT, selection]
     ])
 
     update.enter(() => {
@@ -86,12 +88,12 @@ export function createOverview() {
     overviewOverlays.enter(() => {
       const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
 
-      setAttribute(rect, "height", height + "")
+      setAttribute(rect, "height", OVERVIEW_HEIGHT + "")
       setAttribute(rect, "class", "overview-overlay")
       setAttribute(rect, "fill", "#F2F7FA")
       setAttribute(rect, "fill-opacity", "0.8")
       setAttribute(rect, "y", "0")
-      setAttribute(rect, "height", height + "")
+      setAttribute(rect, "height", OVERVIEW_HEIGHT + "")
 
       return rect
     }).merge((rect, datum, index) => {
@@ -112,7 +114,7 @@ export function createOverview() {
       const drag = createDrag();
       
       rect.style.cursor = "grab";
-      setAttribute(rect, "height", height + "")
+      setAttribute(rect, "height", OVERVIEW_HEIGHT + "")
       // setAttribute(rect, "fill-opacity", "0.4")
       // setAttribute(rect, "fill", "#DCEDC8")
       setAttribute(rect, "class", "overview-center-handler")
@@ -157,7 +159,7 @@ export function createOverview() {
 
       setAttribute(rect, "x", rectX + "")
       setAttribute(rect, "width", rectW + "")
-      setAttribute(rect, "height", height + 2 * HANDLE_EXTRA_SPACE + "")
+      setAttribute(rect, "height", OVERVIEW_HEIGHT + 2 * HANDLE_EXTRA_SPACE + "")
     })
   }
 
@@ -170,7 +172,7 @@ export function createOverview() {
       
       rect.style.cursor = "ew-resize";
       setAttribute(rect, "width", HANDLER_WIDTH + "")
-      setAttribute(rect, "height", height + 2 * HANDLE_EXTRA_SPACE + "")
+      setAttribute(rect, "height", OVERVIEW_HEIGHT + 2 * HANDLE_EXTRA_SPACE + "")
       // setAttribute(rect, "fill-opacity", "0.6")
       // setAttribute(rect, "fill", "#ccc")
       setAttribute(rect, "class", "overview-handlers")
@@ -234,10 +236,6 @@ export function createOverview() {
 
   render.yRange = function (_: [number, number]) {
     return y.range(_), render
-  }
-
-  render.height = function (_) {
-    return height = _, render;
   }
   
   render.changeSelection = function (_) {

@@ -1,7 +1,6 @@
 import typescript from "rollup-plugin-typescript2";
 import compiler from "@ampproject/rollup-plugin-closure-compiler";
 
-
 export default {
   input: "./src/index.ts",
   
@@ -15,6 +14,6 @@ export default {
     typescript({
       objectHashIgnoreUnknownHack: true
     }),
-    compiler(),
+    // compiler(),
 	]
 }
