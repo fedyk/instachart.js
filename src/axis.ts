@@ -7,10 +7,11 @@ import { createTransition } from "./transition";
 import { createTimeTicks } from "./time-ticks";
 
 export function createLeftAxis() {
-  // const enterTransition = createTransition().duration(150);
-  // const exitTransition = createTransition().duration(100);
+  const enterTransition = createTransition().duration(200);
+  const exitTransition = createTransition().duration(100);
   const scale = createScale([0, 1], [0, 1]);
   const y = createScale([0, 1], [0, 1])
+  let initiallyRendered = false;
   let ticksCount: number = 6;
   let pathLength = 100;
   let ticks: number[] = []
@@ -24,8 +25,16 @@ export function createLeftAxis() {
       const text = g.appendChild(document.createElementNS("http://www.w3.org/2000/svg", "text"))
 
       setAttribute(g, "class", "tick")
-      // setAttribute(g, "fill-opacity", "0")
-      // enterTransition(g, "fill-opacity", "1")
+
+      if (initiallyRendered) {
+        setAttribute(g, "fill-opacity", "0")
+        enterTransition(g, "fill-opacity", "1")
+      }
+      else {
+        setAttribute(g, "fill-opacity", "1")
+      }
+
+      setAttribute(line, "x2", pathLength + "")
       setAttribute(line, "class", "tick-line")
       setAttribute(line, "stroke", "#ECF0F3")
       setAttribute(line, "stroke-width", "1")
@@ -45,20 +54,21 @@ export function createLeftAxis() {
     })
 
     update.exit((g, datum) => {
-      // const t = exitTransition(g, "fill-opacity", "0")
 
-      // setAttribute(g, "transform", `translate(0,${y(datum)})`)
-      removeElement(g)
+      setAttribute(g, "transform", `translate(0,${y(datum)})`)
 
-      // if (t) {
-      //   t.on("end", () => removeElement(g))
-      // }
+      const t = exitTransition(g, "fill-opacity", "0")
+
+      if (t) {
+        t.on("end", () => removeElement(g))
+      }
     })
 
     generalUpdatePattern<number>(target, ".tick-line", ticks).update((line) => {
-      // setAttribute(line, "pathLength", pathLength + "")
       setAttribute(line, "x2", pathLength + "")
     })
+
+    initiallyRendered = true;
   }
 
   function getTicks() {

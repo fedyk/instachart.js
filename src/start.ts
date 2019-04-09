@@ -31,7 +31,7 @@ export function start(data: RawChartData[]) {
   function handleFilterChange(index) {
     return function (chatId, visible) {
       charts[index].toggleLine(chatId, visible)
-      charts[index]()
+      charts[index](true)
     }
   }
 }

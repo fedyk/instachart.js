@@ -33,8 +33,8 @@ export function createInstantChart(parent: HTMLElement) {
   setAttribute(gLeftAxis, "transform", "translate(16,0)")
   setAttribute(gPopover, "transform", "translate(0,0)")
 
-  function render() {
-    renderMainLines(gBody)
+  function render(transition = false) {
+    renderMainLines(gBody, transition)
     renderLeftAxis(gLeftAxis);
     renderBottomAxis(gBottomAxis);
     renderOverview(gOverview);
