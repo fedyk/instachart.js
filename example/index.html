@@ -11,6 +11,10 @@
 
 <body>
   <div class="chart-container">
+    <div id="chart-0" class=""></div>
+  </div>
+
+  <div class="chart-container">
     <div id="chart-1" class=""></div>
   </div>
 
@@ -35,12 +39,27 @@
 
   <script src="../dist/instant-chart.js"></script>
   <script>
+    InstantChart.create(document.getElementById("chart-0"), {
+      type: "line",
+      data: {
+        labels: [1, 2, 3, 4],
+        datasets: [{
+          name: "Test",
+          color: "#ff0",
+          data: [1, 2, 3, 4]
+        }, {
+          name: "Test",
+          color: "#f0f",
+          data: [8, 4, 2, 1]
+        }]
+      }
+    })
+
     fetch("./data/chart_data.json")
       .then(function (response) {
         return response.json()
       })
       .then(function (datasets) {
-        debugger
         for (let i = 0; i < datasets.length; i++) {
           const dataset = datasets[i];
           const containerId = "chart-" + (i + 1)
@@ -55,7 +74,7 @@
             datasets: []
           }
 
-          const columns = new Map(dataset.columns.map(function(column) {
+          const columns = new Map(dataset.columns.map(function (column) {
             return [column[0], column.slice(1)]
           }))
 
@@ -81,7 +100,7 @@
           InstantChart.create(container, options)
         }
       })
-      .catch(function(err) {
+      .catch(function (err) {
         console.error(err)
       })
   </script>
