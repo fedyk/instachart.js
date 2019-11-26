@@ -1,4 +1,7 @@
 module InstantChart {
+  const OVERVIEW_HEIGHT = 60
+  const HORIZONTAL_PADDING = 24
+
   export interface Data {
     labels: Array<number | Date>
     datasets: Array<{
@@ -30,88 +33,162 @@ module InstantChart {
     const footer = document.createElement("div")
     const canvas = document.createElement("canvas")
     const context = canvas.getContext("2d") as CanvasRenderingContext2D;
+    const alphaAnimations = createAlphaAnimations()
+    let time: number;
     let animationRequestId: number;
-    let mainLinesRect = getMainLinesRect()
-    let overviewLinesRect = getOverviewLinesRect()
+    let mainRect = getMainRect()
+    let needRenderMain = true;
+    let overviewRect = getOverviewRect()
+    let needRenderOverview = true
 
     if (!context) {
       throw new Error("Failed to create canvas context");
     }
 
-    appendAll()
-    scaleCanvas(canvas, context, size.width, size.height)
-    render()
+    function createAlphaAnimations() {
+      return data.datasets.map(function () {
+        return createAnimation(1, 180)
+      })
+    }
 
-    function appendAll() {
+    function toggleLine(event: MouseEvent) {
+      const target = event && event.target as HTMLButtonElement | null;
+
+      if (!target || !target.dataset) {
+        return
+      }
+
+      const datasetIndex = Number(target.dataset["dataset_index"])
+
+      if (isNaN(datasetIndex)) {
+        return
+      }
+
+      const alphaAnimation = alphaAnimations[datasetIndex]
+
+      if (!alphaAnimation) {
+        return
+      }
+
+      play(alphaAnimation, alphaAnimation.toValue === 1 ? 0 : 1, time)
+    }
+
+    function appendControls() {
+      for (let i = 0; i < data.datasets.length; i++) {
+        const dataset = data.datasets[i];
+        const button = document.createElement("button")
+
+        button.innerText = dataset.name;
+        button.addEventListener("click", toggleLine, false)
+        button.dataset["dataset_index"] = String(i);
+
+        footer.appendChild(button)
+      }
+    }
+
+    function appendElements() {
       container.appendChild(header)
       container.appendChild(body)
       container.appendChild(footer)
       body.appendChild(canvas);
     }
 
-    function render() {
-      renderMainLines(context)
-      renderOverviewLines(context)
-      // animationRequestId = requestAnimationFrame(render)
+    function render(now = Date.now()) {
+      time = now;
+
+      for (let i = 0; i < alphaAnimations.length; i++) {
+        const alphaAnimation = alphaAnimations[i];
+
+        if (updateAnimation(alphaAnimation, time)) {
+          needRenderMain = true
+        }
+      }
+
+      if (needRenderMain) {
+        renderMainLines(), needRenderMain = false
+      }
+
+      if (needRenderOverview) {
+        renderOverviewLines(), needRenderOverview = false
+      }
+
+      animationRequestId = requestAnimationFrame(render)
     }
 
-    function renderMainLines(context: CanvasRenderingContext2D) {
+    function renderMainLines() {
+      context.clearRect(mainRect.top, mainRect.left, mainRect.width, mainRect.height)
+
       for (let i = 0; i < data.datasets.length; i++) {
         const dataset = data.datasets[i];
-        const x = (index: number) => mainLinesRect.width * index / (data.labels.length - 1)
-        const y = (d: number) => mainLinesRect.top + mainLinesRect.height * (1 - (d - min) / (max - min))
+        const x = (index: number) => mainRect.width * index / (data.labels.length - 1)
+        const y = (d: number) => mainRect.top + mainRect.height * (1 - (d - min) / (max - min))
 
+        context.globalAlpha = alphaAnimations[i].value;
         context.beginPath()
         context.strokeStyle = dataset.color
         context.lineWidth = 2
+        context.lineJoin = "round"
         context.moveTo(x(0), y(dataset.data[0]))
+
         for (let j = 1; j < dataset.data.length; j++) {
           context.lineTo(x(j), y(dataset.data[j]))
         }
+
         context.stroke()
       }
     }
 
-    function renderOverviewLines(context: CanvasRenderingContext2D) {
+    function renderOverviewLines() {
+      context.globalAlpha = 1;
+
       for (let i = 0; i < data.datasets.length; i++) {
         const dataset = data.datasets[i];
+        const x = (index: number) => HORIZONTAL_PADDING + (overviewRect.width - 2 * HORIZONTAL_PADDING) * index / (data.labels.length - 1)
+        const y = (d: number) => overviewRect.top + overviewRect.height * (1 - (d - min) / (max - min))
 
         context.beginPath()
         context.strokeStyle = dataset.color
-        context.lineWidth = 2
-        const x = overviewLinesRect.left;
-        const y = overviewLinesRect.top + overviewLinesRect.height * (1 - (dataset.data[0] - min) / (max - min))
-        context.moveTo(x, y)
+        context.lineWidth = 1
+        context.lineJoin = "round"
+        context.moveTo(x(0), y(dataset.data[0]))
+
         for (let j = 1; j < dataset.data.length; j++) {
-          const x = overviewLinesRect.width * (j + 1) / data.labels.length
-          const y = overviewLinesRect.top + overviewLinesRect.height * (1 - (dataset.data[j] - min) / (max - min))
-          context.lineTo(x, y)
+          context.lineTo(x(j), y(dataset.data[j]))
         }
+
         context.stroke()
       }
     }
 
-    function getMainLinesRect(): ChartRect {
+    function getMainRect(): ChartRect {
       return {
         top: 0,
         left: 0,
         width: size.width,
-        height: size.height - 80,
+        height: size.height - OVERVIEW_HEIGHT,
       }
     }
 
-    function getOverviewLinesRect(): ChartRect {
+    function getOverviewRect(): ChartRect {
       return {
-        top: size.height - 80,
+        top: size.height - OVERVIEW_HEIGHT,
         left: 0,
         width: size.width,
-        height: 80
+        height: OVERVIEW_HEIGHT
       }
     }
 
     function dispose() {
       cancelAnimationFrame(animationRequestId);
     }
+
+    appendElements()
+
+    appendControls()
+
+    scaleCanvas(canvas, context, size.width, size.height)
+
+    render()
 
     return {
       dispose
@@ -156,7 +233,7 @@ module InstantChart {
   function parseSize(el: HTMLElement) {
     const rect = el.getBoundingClientRect();
     const width = rect.width
-    const height = rect.height || Math.floor(rect.width * 0.8)
+    const height = rect.height || rect.width
 
     return { width, height }
   }
@@ -197,4 +274,47 @@ module InstantChart {
     // scale the drawing context so everything will work at the higher ratio
     context.scale(ratio, ratio);
   }
+
+  type Animation = ReturnType<typeof createAnimation>
+
+  function createAnimation(value: number, duration: number) {
+    return {
+      fromValue: value,
+      toValue: value,
+      value: value,
+      startTime: 0,
+      duration: duration,
+      delay: 0
+    }
+  }
+
+  function play(animation: Animation, toValue: number, time: number) {
+    animation.startTime = time;
+    animation.toValue = toValue;
+    animation.fromValue = animation.value;
+  }
+
+  function updateAnimation(animation: Animation, time: number) {
+    if (animation.value === animation.toValue) {
+      return false;
+    }
+
+    var progress = ((time - animation.startTime) - animation.delay) / animation.duration;
+
+    if (progress < 0) {
+      progress = 0;
+    }
+
+    if (progress > 1) {
+      progress = 1;
+    }
+
+    var ease = -progress * (progress - 2);
+
+    animation.value = animation.fromValue + (animation.toValue - animation.fromValue) * ease;
+
+    return true;
+  }
+
+
 }
