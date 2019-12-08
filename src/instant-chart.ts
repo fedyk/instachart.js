@@ -1,8 +1,4 @@
 module InstantChart {
-  const OVERVIEW_HEIGHT = 60
-  const HORIZONTAL_PADDING = 24
-  const ANIMATION_DURATION = 200
-
   export interface Data {
     labels: Array<number | Date>
     datasets: Array<{
@@ -27,9 +23,13 @@ module InstantChart {
   }
 
   export function create(container: HTMLDivElement, options: Options) {
+    const OVERVIEW_HEIGHT = 60
+    const HORIZONTAL_PADDING = 24
+    const ANIMATION_DURATION = 200
+    const AXIS_LINES_AMOUNT = 6
     const data = parseData(options.data)
     const max = Math.max(...data.datasets.map(dataset => dataset.max))
-    const min = Math.min(...data.datasets.map(dataset => dataset.min))
+    const min = 0
     const size = parseSize(container)
     const header = document.createElement("div")
     const body = document.createElement("div")
@@ -37,7 +37,7 @@ module InstantChart {
     const canvas = document.createElement("canvas")
     const context = canvas.getContext("2d") as CanvasRenderingContext2D;
     const alphaAnimations = createAlphaAnimations()
-    const minAnimation = createAnimation(min, ANIMATION_DURATION)
+    const axisAnimations = createAxisAnimations()
     const maxAnimation = createAnimation(max, ANIMATION_DURATION)
     let time: number;
     let animationRequestId: number;
@@ -54,6 +54,19 @@ module InstantChart {
       return data.datasets.map(function () {
         return createAnimation(1, ANIMATION_DURATION)
       })
+    }
+
+    function createAxisAnimations() {
+      return {
+        old: {
+          delta: 0,
+          alpha: createAnimation(0, ANIMATION_DURATION)
+        },
+        new: {
+          delta: Math.ceil(max / AXIS_LINES_AMOUNT),
+          alpha: createAnimation(1, ANIMATION_DURATION)
+        }
+      }
     }
 
     function toggleLine(event: MouseEvent) {
@@ -78,11 +91,17 @@ module InstantChart {
       play(alphaAnimation, alphaAnimation.toValue === 1 ? 0 : 1, time)
 
       const visibleDatasets = getVisibleDatasets();
-      const min = Math.min(...visibleDatasets.map(d => d.min))
       const max = Math.max(...visibleDatasets.map(d => d.max))
 
-      play(minAnimation, min, time)
       play(maxAnimation, max, time)
+
+      axisAnimations.old.delta = axisAnimations.new.delta
+      axisAnimations.old.alpha.value = axisAnimations.old.alpha.fromValue = 1
+      play(axisAnimations.old.alpha, 0, time)
+
+      axisAnimations.new.delta = Math.ceil(max / AXIS_LINES_AMOUNT)
+      axisAnimations.new.alpha.value = axisAnimations.new.alpha.fromValue = 0
+      play(axisAnimations.new.alpha, 1, time)
     }
 
     function appendControls() {
@@ -105,6 +124,14 @@ module InstantChart {
       body.appendChild(canvas);
     }
 
+    function scaleY(d: number) {
+      return mainRect.top + mainRect.height * (1 - (d - min) / (maxAnimation.value - min))
+    }
+
+    function scaleX(d: number) {
+      return mainRect.width * d / (data.labels.length - 1)
+    }
+
     function render(now = Date.now()) {
       time = now;
 
@@ -117,14 +144,17 @@ module InstantChart {
         }
       }
 
-      if (updateAnimation(minAnimation, time)) {
-        needRenderMain = true
-        needRenderOverview = true
-      }
-      
       if (updateAnimation(maxAnimation, time)) {
         needRenderMain = true
         needRenderOverview = true
+      }
+
+      if (updateAnimation(axisAnimations.old.alpha, time)) {
+        needRenderMain = true
+      }
+
+      if (updateAnimation(axisAnimations.new.alpha, time)) {
+        needRenderMain = true
       }
 
       if (needRenderMain) {
@@ -139,33 +169,53 @@ module InstantChart {
     }
 
     function renderMainLines() {
-      const min = minAnimation.value
-      const max = maxAnimation.value
-
       context.clearRect(mainRect.left, mainRect.top, mainRect.width, mainRect.height)
 
+      // axis lines
+      if (axisAnimations.old.alpha.value !== 0) {
+        renderAxisLines(axisAnimations.old.delta, axisAnimations.old.alpha.value)
+      }
+
+      if (axisAnimations.new.alpha.value !== 0) {
+        renderAxisLines(axisAnimations.new.delta, axisAnimations.new.alpha.value)
+      }
+
+      // lines
       for (let i = 0; i < data.datasets.length; i++) {
         const dataset = data.datasets[i];
-        const x = (index: number) => mainRect.width * index / (data.labels.length - 1)
-        const y = (d: number) => mainRect.top + mainRect.height * (1 - (d - min) / (max - min))
 
         context.globalAlpha = alphaAnimations[i].value;
         context.strokeStyle = dataset.color
         context.lineWidth = 2
         context.lineJoin = "round"
         context.beginPath()
-        context.moveTo(x(0), y(dataset.data[0]))
+
+        context.moveTo(scaleX(0), scaleY(dataset.data[0]))
 
         for (let j = 1; j < dataset.data.length; j++) {
-          context.lineTo(x(j), y(dataset.data[j]))
+          context.lineTo(scaleX(j), scaleY(dataset.data[j]))
         }
 
         context.stroke()
       }
     }
 
+    function renderAxisLines(delta: number, alpha: number) {
+      context.globalAlpha = alpha
+      context.strokeStyle = "#E7E9EB"
+      context.lineWidth = 1
+
+      for (let i = 0; i < AXIS_LINES_AMOUNT; i++) {
+        const y = scaleY(delta * i)
+
+        context.beginPath()
+        context.moveTo(14, y)
+        context.lineTo(mainRect.width - 14 * 2, y)
+        context.stroke()
+      }
+    }
+
     function renderOverviewLines() {
-      const min = minAnimation.value
       const max = maxAnimation.value
 
       context.clearRect(overviewRect.left, overviewRect.top, overviewRect.width, overviewRect.height)
