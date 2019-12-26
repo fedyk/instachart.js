@@ -27,6 +27,8 @@ module InstantChart {
     const HORIZONTAL_PADDING = 24
     const ANIMATION_DURATION = 200
     const AXIS_LINES_AMOUNT = 6
+    const DRAG_CONTROL_WIDTH = 12;
+    const DRAG_CONTROL_WHITE_LINE_HEIGHT = 12;
     const data = parseData(options.data)
     const max = Math.max(...data.datasets.map(dataset => dataset.max))
     const min = 0
@@ -39,6 +41,7 @@ module InstantChart {
     const alphaAnimations = createAlphaAnimations()
     const axisAnimations = createAxisAnimations()
     const maxAnimation = createAnimation(max, ANIMATION_DURATION)
+    const selected = { start: 0.5, end: 0.75 }
     let time: number;
     let animationRequestId: number;
     let mainRect = getMainRect()
@@ -109,6 +112,14 @@ module InstantChart {
         const dataset = data.datasets[i];
         const button = document.createElement("button")
 
+
+        button.style.backgroundColor = dataset.color
+        button.style.border = "none"
+        button.style.borderRadius = "18px"
+        button.style.height = "36px"
+        button.style.padding = "4px 14px"
+        button.style.color = "#fff"
+
         button.innerText = dataset.name;
         button.addEventListener("click", toggleLine, false)
         button.dataset["dataset_index"] = String(i);
@@ -124,11 +135,11 @@ module InstantChart {
       body.appendChild(canvas);
     }
 
-    function scaleY(d: number) {
+    function mainScaleY(d: number) {
       return mainRect.top + mainRect.height * (1 - (d - min) / (maxAnimation.value - min))
     }
 
-    function scaleX(d: number) {
+    function mainScaleX(d: number) {
       return mainRect.width * d / (data.labels.length - 1)
     }
 
@@ -190,10 +201,10 @@ module InstantChart {
         context.lineJoin = "round"
         context.beginPath()
 
-        context.moveTo(scaleX(0), scaleY(dataset.data[0]))
+        context.moveTo(mainScaleX(0), mainScaleY(dataset.data[0]))
 
         for (let j = 1; j < dataset.data.length; j++) {
-          context.lineTo(scaleX(j), scaleY(dataset.data[j]))
+          context.lineTo(mainScaleX(j), mainScaleY(dataset.data[j]))
         }
 
         context.stroke()
@@ -206,7 +217,7 @@ module InstantChart {
       context.lineWidth = 1
 
       for (let i = 0; i < AXIS_LINES_AMOUNT; i++) {
-        const y = scaleY(delta * i)
+        const y = mainScaleY(delta * i)
 
         context.beginPath()
         context.moveTo(14, y)
@@ -218,26 +229,123 @@ module InstantChart {
     function renderOverviewLines() {
       const max = maxAnimation.value
 
+      function overviewScaleX(d: number) {
+        return HORIZONTAL_PADDING + (overviewRect.width - 2 * HORIZONTAL_PADDING) * d / (data.labels.length - 1)
+      }
+
+      function overviewScaleY(d: number) {
+        return overviewRect.top + overviewRect.height * (1 - d / maxAnimation.value)
+      }
+
       context.clearRect(overviewRect.left, overviewRect.top, overviewRect.width, overviewRect.height)
 
+      // render lines
       for (let i = 0; i < data.datasets.length; i++) {
         const dataset = data.datasets[i];
-        const x = (index: number) => HORIZONTAL_PADDING + (overviewRect.width - 2 * HORIZONTAL_PADDING) * index / (data.labels.length - 1)
-        const y = (d: number) => overviewRect.top + overviewRect.height * (1 - (d - min) / (max - min))
 
         context.globalAlpha = alphaAnimations[i].value;
         context.strokeStyle = dataset.color
         context.lineWidth = 1
         context.lineJoin = "round"
         context.beginPath()
-        context.moveTo(x(0), y(dataset.data[0]))
+        context.moveTo(overviewScaleX(0), overviewScaleY(dataset.data[0]))
 
         for (let j = 1; j < dataset.data.length; j++) {
-          context.lineTo(x(j), y(dataset.data[j]))
+          context.lineTo(overviewScaleX(j), overviewScaleY(dataset.data[j]))
         }
 
         context.stroke()
       }
+
+      // render selected area
+      context.globalAlpha = 0.4
+      context.fillStyle = "#C0D1E1"
+      const OVERVIEW_WIDTH = (overviewRect.width - 2 * HORIZONTAL_PADDING)
+      const LEFT_WIDTH = OVERVIEW_WIDTH * selected.start
+      const RIGHT_WIDTH = OVERVIEW_WIDTH * (1 - selected.end)
+
+      context.fillRect(
+        overviewRect.left + HORIZONTAL_PADDING,
+        overviewRect.top,
+        LEFT_WIDTH,
+        overviewRect.height
+      )
+
+      context.fillRect(
+        HORIZONTAL_PADDING + OVERVIEW_WIDTH,
+        overviewRect.top,
+        -RIGHT_WIDTH,
+        overviewRect.height
+      )
+
+      // render selected stroke
+      context.globalAlpha = 1
+      context.fillStyle = "#C0D1E1"
+      context.strokeStyle = "#C0D1E1"
+      context.lineWidth = 1
+      context.strokeRect(
+        HORIZONTAL_PADDING + LEFT_WIDTH,
+        overviewRect.top,
+        OVERVIEW_WIDTH * (selected.end - selected.start),
+        overviewRect.height
+      )
+
+      // render drag controls
+      setDragControlsStyles();
+      renderLeftDragControl();
+      renderRightDragControl(OVERVIEW_WIDTH);
+
+      // https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/quadraticCurveTo
+      
+    }
+
+    function setDragControlsStyles() {
+      context.globalAlpha = 1;
+      context.fillStyle = "#C0D1E1";
+      context.strokeStyle = "#C0D1E1";
+      context.lineWidth = 1;
+    }
+
+    function renderLeftDragControl() {
+      context.beginPath();
+      context.moveTo(HORIZONTAL_PADDING + DRAG_CONTROL_WIDTH, overviewRect.top);
+      context.lineTo(HORIZONTAL_PADDING + DRAG_CONTROL_WIDTH, overviewRect.top + overviewRect.height);
+      context.arc(HORIZONTAL_PADDING + DRAG_CONTROL_WIDTH, overviewRect.top + overviewRect.height - DRAG_CONTROL_WIDTH, DRAG_CONTROL_WIDTH, 0.5 * Math.PI, Math.PI);
+      context.lineTo(HORIZONTAL_PADDING, overviewRect.top + DRAG_CONTROL_WIDTH);
+      context.arc(HORIZONTAL_PADDING + DRAG_CONTROL_WIDTH, overviewRect.top + DRAG_CONTROL_WIDTH, DRAG_CONTROL_WIDTH, Math.PI, 1.5 * Math.PI);
+      context.fill();
+
+      // set style for white line on drag control
+      context.lineWidth = 3
+      context.lineCap = "round"
+      context.strokeStyle = "#FFF"
+
+      // render while line on drag control
+      context.beginPath()
+      context.moveTo(HORIZONTAL_PADDING + DRAG_CONTROL_WIDTH / 2, overviewRect.top + overviewRect.height / 2 - DRAG_CONTROL_WHITE_LINE_HEIGHT / 2)
+      context.lineTo(HORIZONTAL_PADDING + DRAG_CONTROL_WIDTH / 2, overviewRect.top + overviewRect.height / 2 + DRAG_CONTROL_WHITE_LINE_HEIGHT / 2)
+      context.stroke()
+    }
+    
+    function renderRightDragControl(OVERVIEW_WIDTH: number) {
+      context.beginPath();
+      context.moveTo(HORIZONTAL_PADDING + OVERVIEW_WIDTH, overviewRect.top + DRAG_CONTROL_WIDTH);
+      context.lineTo(HORIZONTAL_PADDING + OVERVIEW_WIDTH, overviewRect.top + overviewRect.height - DRAG_CONTROL_WIDTH);
+      context.arc(HORIZONTAL_PADDING + OVERVIEW_WIDTH - DRAG_CONTROL_WIDTH, overviewRect.top + overviewRect.height - DRAG_CONTROL_WIDTH, DRAG_CONTROL_WIDTH, 0, 0.5 * Math.PI);
+      context.lineTo(HORIZONTAL_PADDING + OVERVIEW_WIDTH - DRAG_CONTROL_WIDTH, overviewRect.top);
+      context.arc(HORIZONTAL_PADDING + OVERVIEW_WIDTH - DRAG_CONTROL_WIDTH, overviewRect.top + DRAG_CONTROL_WIDTH, DRAG_CONTROL_WIDTH, 1.5 * Math.PI, 0);
+      context.fill()
+
+      // set style for white line on drag control
+      context.lineWidth = 3
+      context.lineCap = "round"
+      context.strokeStyle = "#FFF"
+
+      // render while line on drag control
+      context.beginPath()
+      context.moveTo(HORIZONTAL_PADDING + OVERVIEW_WIDTH - DRAG_CONTROL_WIDTH / 2, overviewRect.top + overviewRect.height / 2 - DRAG_CONTROL_WHITE_LINE_HEIGHT / 2)
+      context.lineTo(HORIZONTAL_PADDING + OVERVIEW_WIDTH - DRAG_CONTROL_WIDTH / 2, overviewRect.top + overviewRect.height / 2 + DRAG_CONTROL_WHITE_LINE_HEIGHT / 2)
+      context.stroke()
     }
 
     function getMainRect(): ChartRect {
