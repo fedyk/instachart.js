@@ -24,7 +24,7 @@ module InstantChart {
 
   export function create(container: HTMLDivElement, options: Options) {
     const OVERVIEW_HEIGHT = 60
-    const HORIZONTAL_PADDING = 24
+    const HORIZONTAL_PADDING = 14
     const ANIMATION_DURATION = 200
     const AXIS_LINES_AMOUNT = 6
     const DRAG_CONTROL_WIDTH = 12;
@@ -258,45 +258,62 @@ module InstantChart {
       }
 
       // render selected area
-      context.globalAlpha = 0.4
-      context.fillStyle = "#C0D1E1"
       const OVERVIEW_WIDTH = (overviewRect.width - 2 * HORIZONTAL_PADDING)
       const LEFT_WIDTH = OVERVIEW_WIDTH * selected.start
       const RIGHT_WIDTH = OVERVIEW_WIDTH * (1 - selected.end)
 
-      context.fillRect(
-        overviewRect.left + HORIZONTAL_PADDING,
-        overviewRect.top,
-        LEFT_WIDTH,
-        overviewRect.height
-      )
+      renderSelectedAreas();
 
-      context.fillRect(
-        HORIZONTAL_PADDING + OVERVIEW_WIDTH,
-        overviewRect.top,
-        -RIGHT_WIDTH,
-        overviewRect.height
-      )
-
-      // render selected stroke
-      context.globalAlpha = 1
-      context.fillStyle = "#C0D1E1"
-      context.strokeStyle = "#C0D1E1"
-      context.lineWidth = 1
-      context.strokeRect(
-        HORIZONTAL_PADDING + LEFT_WIDTH,
-        overviewRect.top,
-        OVERVIEW_WIDTH * (selected.end - selected.start),
-        overviewRect.height
-      )
+      // render selected rect
+      renderSelectedRect();
 
       // render drag controls
-      setDragControlsStyles();
-      renderLeftDragControl();
-      renderRightDragControl(OVERVIEW_WIDTH);
+      setDragControlsStyles()
+      renderLeftDragControl()
+      renderRightDragControl()
+    }
 
-      // https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/quadraticCurveTo
-      
+    function renderSelectedAreas() {
+      context.globalAlpha = 0.4
+      context.fillStyle = "#C0D1E1"
+
+      const leftAreaStartX = overviewRect.left + HORIZONTAL_PADDING
+      const leftAreaStartY = overviewRect.top
+      const leftAreaW = (overviewRect.width - 2 * HORIZONTAL_PADDING) * selected.start + DRAG_CONTROL_WIDTH
+      const leftAreaH = overviewRect.height
+
+      const rightAreaStartX = overviewRect.width - HORIZONTAL_PADDING
+      const rightAreaStartY = overviewRect.top
+      const rightAreaW = (overviewRect.width - 2 * HORIZONTAL_PADDING) * (1 - selected.end) + DRAG_CONTROL_WIDTH
+      const rightAreaH = overviewRect.height
+
+      // render left selected rectangle
+      context.fillRect(leftAreaStartX, leftAreaStartY, leftAreaW, leftAreaH)
+
+      // render right selected rectangle
+      context.fillRect(rightAreaStartX, rightAreaStartY, -rightAreaW, rightAreaH)
+    }
+
+    function renderSelectedRect() {
+      const startX = HORIZONTAL_PADDING + (overviewRect.width - 2 * HORIZONTAL_PADDING) * selected.start + DRAG_CONTROL_WIDTH
+      const endX = overviewRect.width - HORIZONTAL_PADDING - (overviewRect.width - 2 * HORIZONTAL_PADDING) * (1 - selected.end) - DRAG_CONTROL_WIDTH
+      const topY = overviewRect.top
+      const bottomY = overviewRect.top + overviewRect.height
+
+      context.lineWidth = 1
+      context.globalAlpha = 1
+      context.strokeStyle = "#C0D1E1"
+      context.beginPath()
+
+      // render top line
+      context.moveTo(startX, topY)
+      context.lineTo(endX, topY)
+
+      // render bottom line
+      context.moveTo(startX, bottomY)
+      context.lineTo(endX, bottomY)
+
+      context.stroke()
     }
 
     function setDragControlsStyles() {
@@ -307,12 +324,14 @@ module InstantChart {
     }
 
     function renderLeftDragControl() {
+      const x = HORIZONTAL_PADDING + (overviewRect.width - 2 * HORIZONTAL_PADDING) * selected.start;
+
       context.beginPath();
-      context.moveTo(HORIZONTAL_PADDING + DRAG_CONTROL_WIDTH, overviewRect.top);
-      context.lineTo(HORIZONTAL_PADDING + DRAG_CONTROL_WIDTH, overviewRect.top + overviewRect.height);
-      context.arc(HORIZONTAL_PADDING + DRAG_CONTROL_WIDTH, overviewRect.top + overviewRect.height - DRAG_CONTROL_WIDTH, DRAG_CONTROL_WIDTH, 0.5 * Math.PI, Math.PI);
-      context.lineTo(HORIZONTAL_PADDING, overviewRect.top + DRAG_CONTROL_WIDTH);
-      context.arc(HORIZONTAL_PADDING + DRAG_CONTROL_WIDTH, overviewRect.top + DRAG_CONTROL_WIDTH, DRAG_CONTROL_WIDTH, Math.PI, 1.5 * Math.PI);
+      context.moveTo(x + DRAG_CONTROL_WIDTH, overviewRect.top);
+      context.lineTo(x + DRAG_CONTROL_WIDTH, overviewRect.top + overviewRect.height);
+      context.arc(x + DRAG_CONTROL_WIDTH, overviewRect.top + overviewRect.height - DRAG_CONTROL_WIDTH, DRAG_CONTROL_WIDTH, 0.5 * Math.PI, Math.PI);
+      context.lineTo(x, overviewRect.top + DRAG_CONTROL_WIDTH);
+      context.arc(x + DRAG_CONTROL_WIDTH, overviewRect.top + DRAG_CONTROL_WIDTH, DRAG_CONTROL_WIDTH, Math.PI, 1.5 * Math.PI);
       context.fill();
 
       // set style for white line on drag control
@@ -322,18 +341,20 @@ module InstantChart {
 
       // render while line on drag control
       context.beginPath()
-      context.moveTo(HORIZONTAL_PADDING + DRAG_CONTROL_WIDTH / 2, overviewRect.top + overviewRect.height / 2 - DRAG_CONTROL_WHITE_LINE_HEIGHT / 2)
-      context.lineTo(HORIZONTAL_PADDING + DRAG_CONTROL_WIDTH / 2, overviewRect.top + overviewRect.height / 2 + DRAG_CONTROL_WHITE_LINE_HEIGHT / 2)
+      context.moveTo(x + DRAG_CONTROL_WIDTH / 2, overviewRect.top + overviewRect.height / 2 - DRAG_CONTROL_WHITE_LINE_HEIGHT / 2)
+      context.lineTo(x + DRAG_CONTROL_WIDTH / 2, overviewRect.top + overviewRect.height / 2 + DRAG_CONTROL_WHITE_LINE_HEIGHT / 2)
       context.stroke()
     }
-    
-    function renderRightDragControl(OVERVIEW_WIDTH: number) {
+
+    function renderRightDragControl() {
+      const startX = overviewRect.width - HORIZONTAL_PADDING - (overviewRect.width - 2 * HORIZONTAL_PADDING) * (1 - selected.end)
+
       context.beginPath();
-      context.moveTo(HORIZONTAL_PADDING + OVERVIEW_WIDTH, overviewRect.top + DRAG_CONTROL_WIDTH);
-      context.lineTo(HORIZONTAL_PADDING + OVERVIEW_WIDTH, overviewRect.top + overviewRect.height - DRAG_CONTROL_WIDTH);
-      context.arc(HORIZONTAL_PADDING + OVERVIEW_WIDTH - DRAG_CONTROL_WIDTH, overviewRect.top + overviewRect.height - DRAG_CONTROL_WIDTH, DRAG_CONTROL_WIDTH, 0, 0.5 * Math.PI);
-      context.lineTo(HORIZONTAL_PADDING + OVERVIEW_WIDTH - DRAG_CONTROL_WIDTH, overviewRect.top);
-      context.arc(HORIZONTAL_PADDING + OVERVIEW_WIDTH - DRAG_CONTROL_WIDTH, overviewRect.top + DRAG_CONTROL_WIDTH, DRAG_CONTROL_WIDTH, 1.5 * Math.PI, 0);
+      context.moveTo(startX, overviewRect.top + DRAG_CONTROL_WIDTH);
+      context.lineTo(startX, overviewRect.top + overviewRect.height - DRAG_CONTROL_WIDTH);
+      context.arc(startX - DRAG_CONTROL_WIDTH, overviewRect.top + overviewRect.height - DRAG_CONTROL_WIDTH, DRAG_CONTROL_WIDTH, 0, 0.5 * Math.PI);
+      context.lineTo(startX - DRAG_CONTROL_WIDTH, overviewRect.top);
+      context.arc(startX - DRAG_CONTROL_WIDTH, overviewRect.top + DRAG_CONTROL_WIDTH, DRAG_CONTROL_WIDTH, 1.5 * Math.PI, 0);
       context.fill()
 
       // set style for white line on drag control
@@ -343,8 +364,8 @@ module InstantChart {
 
       // render while line on drag control
       context.beginPath()
-      context.moveTo(HORIZONTAL_PADDING + OVERVIEW_WIDTH - DRAG_CONTROL_WIDTH / 2, overviewRect.top + overviewRect.height / 2 - DRAG_CONTROL_WHITE_LINE_HEIGHT / 2)
-      context.lineTo(HORIZONTAL_PADDING + OVERVIEW_WIDTH - DRAG_CONTROL_WIDTH / 2, overviewRect.top + overviewRect.height / 2 + DRAG_CONTROL_WHITE_LINE_HEIGHT / 2)
+      context.moveTo(startX - DRAG_CONTROL_WIDTH / 2, overviewRect.top + overviewRect.height / 2 - DRAG_CONTROL_WHITE_LINE_HEIGHT / 2)
+      context.lineTo(startX - DRAG_CONTROL_WIDTH / 2, overviewRect.top + overviewRect.height / 2 + DRAG_CONTROL_WHITE_LINE_HEIGHT / 2)
       context.stroke()
     }
 
