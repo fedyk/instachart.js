@@ -194,8 +194,9 @@ module InstantChart {
 
         const start = (dataset.data.length - 1) * selected.start
         const end = (dataset.data.length - 1) * selected.end
-        const startIndex = Math.floor(start)
-        const endIndex = Math.floor(end)
+        const indexOffset = Math.ceil(HORIZONTAL_PADDING / ( (mainRect.width - 2 * HORIZONTAL_PADDING) / (end - start) ))
+        const startIndex = Math.max(0, Math.floor(start - indexOffset))
+        const endIndex = Math.min(dataset.data.length - 1, Math.ceil(end + indexOffset))
 
         const scaleX = (index: number) => {
           return HORIZONTAL_PADDING + (mainRect.width - 2 * HORIZONTAL_PADDING) / (end - start) * (index - start)
