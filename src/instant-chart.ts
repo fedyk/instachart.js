@@ -1,13 +1,15 @@
 module InstantChart {
+  export interface Dataset {
+    name: string
+    color: string
+    min: number
+    max: number
+    data: number[]
+  }
+
   export interface Data {
     labels: Array<number | Date>
-    datasets: Array<{
-      name: string
-      color: string
-      min: number
-      max: number
-      data: number[]
-    }>
+    datasets: Array<Dataset>
   }
 
   export interface Options {
@@ -22,15 +24,16 @@ module InstantChart {
     height: number
   }
 
+  const OVERVIEW_HEIGHT = 60
+  const HORIZONTAL_PADDING = 14
+  const ANIMATION_DURATION = 200
+  const ANIMATION_DELAY = Math.round(ANIMATION_DURATION / 2)
+  const AXIS_LINES_AMOUNT = 6
+  const DRAG_CONTROL_WIDTH = 12;
+  const DRAG_CONTROL_WHITE_LINE_HEIGHT = 12;
+
   export function create(container: HTMLDivElement, options: Options) {
-    const OVERVIEW_HEIGHT = 60
-    const HORIZONTAL_PADDING = 14
-    const ANIMATION_DURATION = 200
-    const AXIS_LINES_AMOUNT = 6
-    const DRAG_CONTROL_WIDTH = 12;
-    const DRAG_CONTROL_WHITE_LINE_HEIGHT = 12;
     const data = parseData(options.data)
-    const max = Math.max(...data.datasets.map(dataset => dataset.max))
     const min = 0
     const size = parseSize(container)
     const header = document.createElement("div")
@@ -38,15 +41,17 @@ module InstantChart {
     const footer = document.createElement("div")
     const canvas = document.createElement("canvas")
     const context = canvas.getContext("2d") as CanvasRenderingContext2D;
-    const alphaAnimations = createAlphaAnimations()
-    const axisAnimations = createAxisAnimations()
-    const maxValueAnimation = createAnimation(max, ANIMATION_DURATION)
     const selected = { start: 0.5, end: 1 }
+    const mainRect = getMainRect()
+    const overviewRect = getOverviewRect()
+    const alphaAnimations = createAlphaAnimations()
+    const maxValue = getMaxVisibleValue()
+    const axisAnimations = createAxisAnimations(maxValue)
+    const maxValueAnimation = createAnimation(maxValue, ANIMATION_DURATION)
+    const maxSelectedValueAnimation = createAnimation(getMaxSelectedValue(), ANIMATION_DURATION)
     let time: number;
     let animationRequestId: number;
-    let mainRect = getMainRect()
     let needRenderMain = true;
-    let overviewRect = getOverviewRect()
     let needRenderOverview = true
 
     if (!context) {
@@ -59,14 +64,14 @@ module InstantChart {
       })
     }
 
-    function createAxisAnimations() {
+    function createAxisAnimations(maxValue: number) {
       return {
         old: {
           delta: 0,
           alpha: createAnimation(0, ANIMATION_DURATION)
         },
         new: {
-          delta: Math.ceil(max / AXIS_LINES_AMOUNT),
+          delta: Math.ceil(maxValue / AXIS_LINES_AMOUNT),
           alpha: createAnimation(1, ANIMATION_DURATION)
         }
       }
@@ -91,18 +96,20 @@ module InstantChart {
         return
       }
 
-      play(alphaAnimation, alphaAnimation.toValue === 1 ? 0 : 1, time)
+      play(alphaAnimation, 1 - alphaAnimation.toValue, time)
+      alphaAnimation.delay = alphaAnimation.toValue === 1 ? ANIMATION_DELAY : 0
 
-      const visibleDatasets = getVisibleDatasets();
-      const max = Math.max(...visibleDatasets.map(d => d.max))
+      const maxValue = getMaxVisibleValue()
+      const maxSelectedValue = getMaxSelectedValue()
 
-      play(maxValueAnimation, max, time)
+      play(maxValueAnimation, maxValue, time)
+      play(maxSelectedValueAnimation, maxSelectedValue, time)
 
       axisAnimations.old.delta = axisAnimations.new.delta
       axisAnimations.old.alpha.value = axisAnimations.old.alpha.fromValue = 1
       play(axisAnimations.old.alpha, 0, time)
 
-      axisAnimations.new.delta = Math.ceil(max / AXIS_LINES_AMOUNT)
+      axisAnimations.new.delta = Math.ceil(maxValue / AXIS_LINES_AMOUNT)
       axisAnimations.new.alpha.value = axisAnimations.new.alpha.fromValue = 0
       play(axisAnimations.new.alpha, 1, time)
     }
@@ -148,8 +155,11 @@ module InstantChart {
       }
 
       if (updateAnimation(maxValueAnimation, time)) {
-        needRenderMain = true
         needRenderOverview = true
+      }
+
+      if (updateAnimation(maxSelectedValueAnimation, time)) {
+        needRenderMain = true
       }
 
       if (updateAnimation(axisAnimations.old.alpha, time)) {
@@ -194,16 +204,16 @@ module InstantChart {
 
         const start = (dataset.data.length - 1) * selected.start
         const end = (dataset.data.length - 1) * selected.end
-        const indexOffset = Math.ceil(HORIZONTAL_PADDING / ( (mainRect.width - 2 * HORIZONTAL_PADDING) / (end - start) ))
-        const startIndex = Math.max(0, Math.floor(start - indexOffset))
-        const endIndex = Math.min(dataset.data.length - 1, Math.ceil(end + indexOffset))
+        const indexOffset = Math.ceil(HORIZONTAL_PADDING / ((mainRect.width - 2 * HORIZONTAL_PADDING) / (end - start)))
+        const startIndex = Math.max(0, Math.ceil(start - indexOffset))
+        const endIndex = Math.min(dataset.data.length - 1, Math.floor(end + indexOffset))
 
         const scaleX = (index: number) => {
           return HORIZONTAL_PADDING + (mainRect.width - 2 * HORIZONTAL_PADDING) / (end - start) * (index - start)
         }
 
         const scaleY = (d: number) => {
-          return mainRect.top + mainRect.height * (1 - (d - min) / (maxValueAnimation.value - min))
+          return mainRect.top + mainRect.height * (1 - (d - min) / (maxSelectedValueAnimation.value - min))
         }
 
         context.globalAlpha = animation.value;
@@ -228,7 +238,7 @@ module InstantChart {
       context.lineWidth = 1
 
       const mainScaleY = (d: number) => {
-        return mainRect.top + mainRect.height * (1 - (d - min) / (maxValueAnimation.value - min))
+        return mainRect.top + mainRect.height * (1 - (d - min) / (maxSelectedValueAnimation.value - min))
       }
 
       for (let i = 0; i < AXIS_LINES_AMOUNT; i++) {
@@ -242,33 +252,28 @@ module InstantChart {
     }
 
     function renderOverviewLines() {
-      function overviewScaleX(d: number) {
-        return HORIZONTAL_PADDING + (overviewRect.width - 2 * HORIZONTAL_PADDING) * d / (data.labels.length - 1)
-      }
-
-      function overviewScaleY(d: number) {
-        return overviewRect.top + overviewRect.height * (1 - d / maxValueAnimation.value)
-      }
-
       context.clearRect(overviewRect.left, overviewRect.top, overviewRect.width, overviewRect.height)
 
       // render lines
       for (let i = 0; i < data.datasets.length; i++) {
-        const dataset = data.datasets[i];
-
         if (alphaAnimations[i].value === 0) {
           continue
         }
+
+        const dataset = data.datasets[i];
+        const maxValue = alphaAnimations[i].toValue === 0 ? maxValueAnimation.fromValue : maxValueAnimation.value;
+        const scaleX = (d: number) => HORIZONTAL_PADDING + (overviewRect.width - 2 * HORIZONTAL_PADDING) * d / (data.labels.length - 1)
+        const scaleY = (d: number) => overviewRect.top + overviewRect.height * (1 - d / maxValue)
 
         context.globalAlpha = alphaAnimations[i].value;
         context.strokeStyle = dataset.color
         context.lineWidth = 1
         context.lineJoin = "round"
         context.beginPath()
-        context.moveTo(overviewScaleX(0), overviewScaleY(dataset.data[0]))
+        context.moveTo(scaleX(0), scaleY(dataset.data[0]))
 
         for (let j = 1; j < dataset.data.length; j++) {
-          context.lineTo(overviewScaleX(j), overviewScaleY(dataset.data[j]))
+          context.lineTo(scaleX(j), scaleY(dataset.data[j]))
         }
 
         context.stroke()
@@ -402,6 +407,46 @@ module InstantChart {
         width: size.width,
         height: OVERVIEW_HEIGHT
       }
+    }
+
+    function isDatasetVisible(datasetIndex: number) {
+      return alphaAnimations[datasetIndex].toValue === 1
+    }
+
+    function getMaxVisibleValue() {
+      const maxValues: number[] = []
+
+      for (let i = 0; i < data.datasets.length; i++) {
+        if (!isDatasetVisible(i)) {
+          continue
+        }
+
+        maxValues.push(data.datasets[i].max)
+      }
+
+      return Math.max(...maxValues)
+    }
+
+    function getMaxSelectedValue() {
+      const maxValues: number[] = []
+
+      for (let i = 0; i < data.datasets.length; i++) {
+        if (!isDatasetVisible(i)) {
+          continue
+        }
+
+        const dataset = data.datasets[i]
+        const maxIndex = dataset.data.length - 1
+        const start = maxIndex * selected.start
+        const end = maxIndex * selected.end
+        const indexOffset = Math.ceil(HORIZONTAL_PADDING / ((mainRect.width - 2 * HORIZONTAL_PADDING) / (end - start)))
+        const startIndex = Math.max(0, Math.ceil(start - indexOffset))
+        const endIndex = Math.min(maxIndex, Math.floor(end + indexOffset))
+
+        maxValues.push(Math.max(...dataset.data.slice(startIndex, endIndex)))
+      }
+
+      return Math.max(...maxValues)
     }
 
     function getVisibleDatasets() {
@@ -549,6 +594,4 @@ module InstantChart {
 
     return true;
   }
-
-
 }
