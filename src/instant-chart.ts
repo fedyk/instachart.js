@@ -24,6 +24,13 @@ module InstantChart {
     height: number
   }
 
+  enum DRAG_MODE {
+    NONE,
+    DRAG_LEFT,
+    DRAG_RIGHT,
+    DRAG_CENTER
+  }
+
   const OVERVIEW_HEIGHT = 60
   const HORIZONTAL_PADDING = 14
   const ANIMATION_DURATION = 200
@@ -31,6 +38,7 @@ module InstantChart {
   const AXIS_LINES_AMOUNT = 6
   const DRAG_CONTROL_WIDTH = 12;
   const DRAG_CONTROL_WHITE_LINE_HEIGHT = 12;
+  const IS_TOUCH_DEVICE = 'ontouchstart' in window;
 
   export function create(container: HTMLDivElement, options: Options) {
     const data = parseData(options.data)
@@ -53,6 +61,7 @@ module InstantChart {
     let animationRequestId: number;
     let needRenderMain = true;
     let needRenderOverview = true
+    let dragMode = DRAG_MODE.NONE;
 
     if (!context) {
       throw new Error("Failed to create canvas context");
@@ -317,8 +326,8 @@ module InstantChart {
     }
 
     function renderSelectedRect() {
-      const startX = HORIZONTAL_PADDING + (overviewRect.width - 2 * HORIZONTAL_PADDING) * selected.start + DRAG_CONTROL_WIDTH
-      const endX = overviewRect.width - HORIZONTAL_PADDING - (overviewRect.width - 2 * HORIZONTAL_PADDING) * (1 - selected.end) - DRAG_CONTROL_WIDTH
+      const startX = scaleSelectedX(selected.start) + DRAG_CONTROL_WIDTH
+      const endX = scaleSelectedX(selected.end) - DRAG_CONTROL_WIDTH
       const topY = overviewRect.top
       const bottomY = overviewRect.top + overviewRect.height
 
@@ -338,6 +347,21 @@ module InstantChart {
       context.stroke()
     }
 
+    function isPointInCenterDragControl(x: number, y: number) {
+      if (y < overviewRect.top || y > (overviewRect.top + overviewRect.height)) {
+        return false
+      }
+
+      const startX = scaleSelectedX(selected.start);
+      const endX = scaleSelectedX(selected.end);
+
+      if (x < (startX + DRAG_CONTROL_WIDTH) || x > (endX - DRAG_CONTROL_WIDTH)) {
+        return false
+      }
+
+      return true
+    }
+
     function setDragControlsStyles() {
       context.globalAlpha = 1;
       context.fillStyle = "#C0D1E1";
@@ -346,7 +370,7 @@ module InstantChart {
     }
 
     function renderLeftDragControl() {
-      const x = HORIZONTAL_PADDING + (overviewRect.width - 2 * HORIZONTAL_PADDING) * selected.start;
+      const x = scaleSelectedX(selected.start)
 
       context.beginPath();
       context.moveTo(x + DRAG_CONTROL_WIDTH, overviewRect.top);
@@ -368,8 +392,22 @@ module InstantChart {
       context.stroke()
     }
 
+    function isPointInLeftDragControl(x: number, y: number): boolean {
+      const currentX = scaleSelectedX(selected.start)
+
+      if (y < overviewRect.top || y > overviewRect.top + overviewRect.height) {
+        return false
+      }
+
+      if (x < currentX || x > (currentX + DRAG_CONTROL_WIDTH)) {
+        return false
+      }
+
+      return true
+    }
+
     function renderRightDragControl() {
-      const startX = overviewRect.width - HORIZONTAL_PADDING - (overviewRect.width - 2 * HORIZONTAL_PADDING) * (1 - selected.end)
+      const startX = scaleSelectedX(selected.end)
 
       context.beginPath();
       context.moveTo(startX, overviewRect.top + DRAG_CONTROL_WIDTH);
@@ -389,6 +427,20 @@ module InstantChart {
       context.moveTo(startX - DRAG_CONTROL_WIDTH / 2, overviewRect.top + overviewRect.height / 2 - DRAG_CONTROL_WHITE_LINE_HEIGHT / 2)
       context.lineTo(startX - DRAG_CONTROL_WIDTH / 2, overviewRect.top + overviewRect.height / 2 + DRAG_CONTROL_WHITE_LINE_HEIGHT / 2)
       context.stroke()
+    }
+
+    function isPointInRightDragControl(x: number, y: number): boolean {
+      const currentX = scaleSelectedX(selected.end)
+
+      if (y < overviewRect.top || y > overviewRect.top + overviewRect.height) {
+        return false
+      }
+
+      if (x < (currentX - DRAG_CONTROL_WIDTH) || x > currentX) {
+        return false
+      }
+
+      return true
     }
 
     function getMainRect(): ChartRect {
@@ -449,13 +501,136 @@ module InstantChart {
       return Math.max(...maxValues)
     }
 
-    function getVisibleDatasets() {
-      return data.datasets.filter(function (dataset, index) {
-        return alphaAnimations[index].toValue === 1
-      })
+    function scaleSelectedX(selected: number): number {
+      return HORIZONTAL_PADDING + (overviewRect.width - 2 * HORIZONTAL_PADDING) * selected;
     }
 
+    function invertSelectedX(x: number): number {
+      const selected = (x - HORIZONTAL_PADDING) / (overviewRect.width - 2 * HORIZONTAL_PADDING)
+
+      return Math.min(Math.max(selected, 0), 1)
+    }
+
+    function handleMouseDown(event: MouseEvent) {
+      return handleDragStart(event, event.clientX, event.clientY)
+    }
+
+    function handleTouchStart(event: TouchEvent) {
+      const touch = event.touches.item(0)
+
+      if (!touch) {
+        return
+      }
+
+      return handleDragStart(event, touch.clientX, touch.clientY)
+    }
+
+    function handleDragStart(event: MouseEvent | TouchEvent, clientX: number, clientY: number) {
+      const rect = canvas.getBoundingClientRect()
+      const offsetX = clientX - rect.left
+      const offsetY = clientY - rect.top
+      const MIN_SELECTED = 0.15
+      let x: number
+      let d: number
+
+      if (isPointInLeftDragControl(offsetX, offsetY)) {
+        x = scaleSelectedX(selected.start)
+        d = clientX - x
+        dragMode = DRAG_MODE.DRAG_LEFT
+      }
+      else if (isPointInRightDragControl(offsetX, offsetY)) {
+        x = scaleSelectedX(selected.end)
+        d = clientX - x
+        dragMode = DRAG_MODE.DRAG_RIGHT
+      }
+      else if (isPointInCenterDragControl(offsetX, offsetY)) {
+        x = scaleSelectedX(selected.start)
+        d = clientX - x
+        dragMode = DRAG_MODE.DRAG_CENTER
+      }
+      else {
+        return
+      }
+
+      event.preventDefault()
+
+      if (IS_TOUCH_DEVICE) {
+        document.addEventListener("touchmove", onTouchMove, { passive: false })
+        document.addEventListener("touchcancel", onEnd, false)
+        document.addEventListener("touchend", onEnd, false)
+      }
+      else {
+        document.addEventListener("mousemove", onMouseMove, false)
+        document.addEventListener("mouseup", onEnd, false)
+      }
+
+      function onMouseMove(event: MouseEvent) {
+        return onMove(event, event.clientX, clientY)
+      }
+
+      function onTouchMove(event: TouchEvent) {
+        const touch = event.touches.item(0)
+
+        if (touch) {
+          return onMove(event, touch.clientX, touch.clientY)
+        }
+      }
+
+      function onMove(event: MouseEvent | TouchEvent, clientX: number, clientY: number) {
+        event.preventDefault()
+
+        if (dragMode === DRAG_MODE.DRAG_LEFT) {
+          let start = invertSelectedX(clientX - d)
+
+          if (selected.end - start < MIN_SELECTED) {
+            start = selected.end - MIN_SELECTED
+          }
+
+          selected.start = start
+        }
+
+        if (dragMode === DRAG_MODE.DRAG_RIGHT) {
+          let end = invertSelectedX(clientX - d)
+
+          if (end - selected.start < MIN_SELECTED) {
+            end = selected.start + MIN_SELECTED
+          }
+
+          selected.end = end
+        }
+
+        if (dragMode === DRAG_MODE.DRAG_CENTER) {
+          let start = invertSelectedX(clientX - d)
+          let end = start + (selected.end - selected.start)
+
+          if (end > 1) {
+            end = 1
+            start = end - (selected.end - selected.start)
+          }
+
+          selected.start = start
+          selected.end = end
+        }
+
+        needRenderMain = true
+        needRenderOverview = true
+      }
+
+      function onEnd() {
+        dragMode = DRAG_MODE.NONE
+        document.removeEventListener("mousemove", onMouseMove)
+        document.removeEventListener("touchmove", onTouchMove)
+        document.removeEventListener("touchcancel", onEnd)
+        document.removeEventListener("touchend", onEnd)
+        document.removeEventListener("mouseup", onEnd)
+      }
+    }
+
+
     function dispose() {
+      canvas.removeEventListener("touchstart", handleTouchStart)
+      canvas.removeEventListener("mousedown", handleMouseDown)
+
       cancelAnimationFrame(animationRequestId);
     }
 
@@ -464,6 +639,13 @@ module InstantChart {
     appendControls()
 
     scaleCanvas(canvas, context, size.width, size.height)
+
+    if (IS_TOUCH_DEVICE) {
+      canvas.addEventListener("touchstart", handleTouchStart, false)
+    }
+    else {
+      canvas.addEventListener("mousedown", handleMouseDown, false)
+    }
 
     render()
 
