@@ -31,11 +31,13 @@ module InstantChart {
     DRAG_CENTER
   }
 
-  const OVERVIEW_HEIGHT = 60
+  const MAIN_PADDING_BOTTOM = 35
+  const OVERVIEW_HEIGHT = 40
   const HORIZONTAL_PADDING = 14
   const ANIMATION_DURATION = 200
   const ANIMATION_DELAY = Math.round(ANIMATION_DURATION / 2)
-  const AXIS_LINES_AMOUNT = 6
+  const H_AXIS_LINES_AMOUNT = 6
+  const V_AXIS_LINES_AMOUNT = 6
   const DRAG_CONTROL_WIDTH = 12;
   const DRAG_CONTROL_WHITE_LINE_HEIGHT = 12;
   const IS_TOUCH_DEVICE = 'ontouchstart' in window;
@@ -54,7 +56,7 @@ module InstantChart {
     const overviewRect = getOverviewRect()
     const alphaAnimations = createAlphaAnimations()
     const maxValue = getMaxVisibleValue()
-    const axisAnimations = createAxisAnimations(maxValue)
+    const axisAnimations = createHorizontalAxisAnimations(maxValue)
     const maxValueAnimation = createAnimation(maxValue, ANIMATION_DURATION)
     const maxSelectedValueAnimation = createAnimation(getMaxSelectedValue(), ANIMATION_DURATION)
     let time: number;
@@ -73,14 +75,14 @@ module InstantChart {
       })
     }
 
-    function createAxisAnimations(maxValue: number) {
+    function createHorizontalAxisAnimations(maxValue: number) {
       return {
         old: {
           delta: 0,
           alpha: createAnimation(0, ANIMATION_DURATION)
         },
         new: {
-          delta: Math.ceil(maxValue / AXIS_LINES_AMOUNT),
+          delta: Math.ceil(maxValue / H_AXIS_LINES_AMOUNT),
           alpha: createAnimation(1, ANIMATION_DURATION)
         }
       }
@@ -118,7 +120,7 @@ module InstantChart {
       axisAnimations.old.alpha.value = axisAnimations.old.alpha.fromValue = 1
       play(axisAnimations.old.alpha, 0, time)
 
-      axisAnimations.new.delta = Math.ceil(maxValue / AXIS_LINES_AMOUNT)
+      axisAnimations.new.delta = Math.ceil(maxValue / H_AXIS_LINES_AMOUNT)
       axisAnimations.new.alpha.value = axisAnimations.new.alpha.fromValue = 0
       play(axisAnimations.new.alpha, 1, time)
     }
@@ -193,14 +195,18 @@ module InstantChart {
     function renderMainLines() {
       context.clearRect(mainRect.left, mainRect.top, mainRect.width, mainRect.height)
 
-      // axis lines
+      // render horizontal axis lines (disappearing)
       if (axisAnimations.old.alpha.value !== 0) {
-        renderAxisLines(axisAnimations.old.delta, axisAnimations.old.alpha.value)
+        renderHorizontalAxisLines(axisAnimations.old.delta, axisAnimations.old.alpha.value)
       }
 
+      // render horizontal axis lines (appearing)
       if (axisAnimations.new.alpha.value !== 0) {
-        renderAxisLines(axisAnimations.new.delta, axisAnimations.new.alpha.value)
+        renderHorizontalAxisLines(axisAnimations.new.delta, axisAnimations.new.alpha.value)
       }
+
+      // render vertical axis lines
+      renderVerticalAxisLines()
 
       // lines
       for (let i = 0; i < data.datasets.length; i++) {
@@ -211,18 +217,14 @@ module InstantChart {
           continue;
         }
 
-        const start = (dataset.data.length - 1) * selected.start
-        const end = (dataset.data.length - 1) * selected.end
-        const indexOffset = Math.ceil(HORIZONTAL_PADDING / ((mainRect.width - 2 * HORIZONTAL_PADDING) / (end - start)))
-        const startIndex = Math.max(0, Math.ceil(start - indexOffset))
-        const endIndex = Math.min(dataset.data.length - 1, Math.floor(end + indexOffset))
+        const { end, start, startIndex, endIndex } = getSelectedIndexes(dataset.data)
 
         const scaleX = (index: number) => {
           return HORIZONTAL_PADDING + (mainRect.width - 2 * HORIZONTAL_PADDING) / (end - start) * (index - start)
         }
 
         const scaleY = (d: number) => {
-          return mainRect.top + mainRect.height * (1 - (d - min) / (maxSelectedValueAnimation.value - min))
+          return mainRect.top + (mainRect.height - MAIN_PADDING_BOTTOM) * (1 - (d - min) / (maxSelectedValueAnimation.value - min))
         }
 
         context.globalAlpha = animation.value;
@@ -241,22 +243,67 @@ module InstantChart {
       }
     }
 
-    function renderAxisLines(delta: number, alpha: number) {
+    function getSelectedIndexes(data: any[]) {
+      const start = (data.length - 1) * selected.start
+      const end = (data.length - 1) * selected.end
+      const indexOffset = Math.ceil(HORIZONTAL_PADDING / ((mainRect.width - 2 * HORIZONTAL_PADDING) / (end - start)))
+      const startIndex = Math.max(0, Math.ceil(start - indexOffset))
+      const endIndex = Math.min(data.length - 1, Math.floor(end + indexOffset))
+
+      return { end, start, startIndex, endIndex }
+    }
+
+    function renderHorizontalAxisLines(delta: number, alpha: number) {
       context.globalAlpha = alpha
       context.strokeStyle = "#E7E9EB"
       context.lineWidth = 1
 
       const mainScaleY = (d: number) => {
-        return mainRect.top + mainRect.height * (1 - (d - min) / (maxSelectedValueAnimation.value - min))
+        return mainRect.top + (mainRect.height - MAIN_PADDING_BOTTOM) * (1 - (d - min) / (maxSelectedValueAnimation.value - min))
       }
 
-      for (let i = 0; i < AXIS_LINES_AMOUNT; i++) {
+      for (let i = 0; i < H_AXIS_LINES_AMOUNT; i++) {
         const y = mainScaleY(delta * i)
 
         context.beginPath()
         context.moveTo(HORIZONTAL_PADDING, y)
         context.lineTo(mainRect.width - HORIZONTAL_PADDING, y)
         context.stroke()
+      }
+    }
+
+    function renderVerticalAxisLines() {
+      const tailIndex = data.labels.length - 1
+      const start = tailIndex * selected.start
+      const end = tailIndex * selected.end
+      const delta = Math.ceil(tailIndex * (selected.end - selected.start) / V_AXIS_LINES_AMOUNT)
+
+      if (delta === 0) {
+        return;
+      }
+
+      context.globalAlpha = 1
+      context.strokeStyle = "#E7E9EB"
+      context.fillStyle = "#E7E9EB"
+      context.lineWidth = 1
+      context.textAlign = "center"
+      context.font = "12px sans-serif"
+
+      const scaleX = (index: number) => {
+        return HORIZONTAL_PADDING + (mainRect.width - 2 * HORIZONTAL_PADDING) / (end - start) * (index - start)
+      }
+
+      for (let i = start; i <= end; i += delta) {
+        const roundIndex = Math.round(i / delta) * delta
+        const x = scaleX(roundIndex)
+        const startY = 0
+        const endY = mainRect.height - MAIN_PADDING_BOTTOM
+
+        context.beginPath()
+        context.moveTo(x, startY)
+        context.lineTo(x, endY)
+        context.stroke()
+        context.fillText(roundIndex + "", x, endY + 18)
       }
     }
 
