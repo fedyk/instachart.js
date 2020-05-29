@@ -10,6 +10,6 @@
   "author": "Andrii Fedyk",
   "license": "ISC",
   "dependencies": {
-    "typescript": "^3.7.4"
+    "typescript": "^3.9.3"
   }
 }
