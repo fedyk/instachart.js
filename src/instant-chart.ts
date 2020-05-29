@@ -41,6 +41,17 @@ module InstantChart {
   const DRAG_CONTROL_WIDTH = 12;
   const DRAG_CONTROL_WHITE_LINE_HEIGHT = 12;
   const IS_TOUCH_DEVICE = 'ontouchstart' in window;
+  const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+  function formatDate(time: number | Date, short: boolean = true) {
+    const date = time instanceof Date ? time : new Date(time);
+    const s = MONTH_NAMES[date.getMonth()] + ' ' + date.getDate();
+    if (short) {
+      return s;
+    }
+    return DAY_NAMES[date.getDay()] + ', ' + s;
+  }
 
   export function create(container: HTMLDivElement, options: Options) {
     const data = parseData(options.data)
@@ -59,6 +70,7 @@ module InstantChart {
     const axisAnimations = createHorizontalAxisAnimations(maxValue)
     const maxValueAnimation = createAnimation(maxValue, ANIMATION_DURATION)
     const maxSelectedValueAnimation = createAnimation(getMaxSelectedValue(), ANIMATION_DURATION)
+    const labelAnimations = createLabelAnimations()
     let time: number;
     let animationRequestId: number;
     let needRenderMain = true;
@@ -84,6 +96,19 @@ module InstantChart {
         new: {
           delta: Math.ceil(maxValue / H_AXIS_LINES_AMOUNT),
           alpha: createAnimation(1, ANIMATION_DURATION)
+        }
+      }
+    }
+
+    function createLabelAnimations() {
+      return {
+        old: {
+          delta: 0,
+          alpha: createAnimation(0, ANIMATION_DURATION * 10)
+        },
+        new: {
+          delta: getLabelsDelta(),
+          alpha: createAnimation(1, ANIMATION_DURATION * 10)
         }
       }
     }
@@ -178,6 +203,14 @@ module InstantChart {
       }
 
       if (updateAnimation(axisAnimations.new.alpha, time)) {
+        needRenderMain = true
+      }
+
+      if (updateAnimation(labelAnimations.new.alpha, time)) {
+        needRenderMain = true
+      }
+      
+      if (updateAnimation(labelAnimations.old.alpha, time)) {
         needRenderMain = true
       }
 
@@ -276,34 +309,48 @@ module InstantChart {
       const tailIndex = data.labels.length - 1
       const start = tailIndex * selected.start
       const end = tailIndex * selected.end
-      const delta = Math.ceil(tailIndex * (selected.end - selected.start) / V_AXIS_LINES_AMOUNT)
+      // const delta = Math.ceil(tailIndex * (selected.end - selected.start) / V_AXIS_LINES_AMOUNT)
 
-      if (delta === 0) {
-        return;
+      // if (delta === 0) {
+      //   return;
+      // }
+
+      // reset animations
+
+      if (labelAnimations.new.delta === 0 || labelAnimations.old.delta === 0) return
+
+      setStyles(labelAnimations.new.alpha.value)
+      renderLabels(labelAnimations.new.delta)
+
+      if (labelAnimations.old.alpha.value > 0) {
+        setStyles(labelAnimations.old.alpha.value)
+        renderLabels(labelAnimations.old.delta)
       }
 
-      context.globalAlpha = 1
-      context.strokeStyle = "#E7E9EB"
-      context.fillStyle = "#E7E9EB"
-      context.lineWidth = 1
-      context.textAlign = "center"
-      context.font = "12px sans-serif"
+      function setStyles(alpha: number) {
+        context.globalAlpha = alpha
+        context.strokeStyle = "#E7E9EB"
+        context.fillStyle = "#E7E9EB"
+        context.lineWidth = 1
+        context.textAlign = "center"
+        context.font = "12px sans-serif"
+      }
 
-      const scaleX = (index: number) => {
+      function scaleX(index: number) {
         return HORIZONTAL_PADDING + (mainRect.width - 2 * HORIZONTAL_PADDING) / (end - start) * (index - start)
       }
 
-      for (let i = start; i <= end; i += delta) {
-        const roundIndex = Math.round(i / delta) * delta
-        const x = scaleX(roundIndex)
-        const startY = 0
-        const endY = mainRect.height - MAIN_PADDING_BOTTOM
+      function renderLabels(delta: number) {
+        for (let i = start; i <= end; i += delta) {
+          const roundIndex = Math.round(i / delta) * delta
+          const x = scaleX(roundIndex)
+          const endY = mainRect.height - MAIN_PADDING_BOTTOM
+          const label = data.labels[roundIndex]
 
-        context.beginPath()
-        context.moveTo(x, startY)
-        context.lineTo(x, endY)
-        context.stroke()
-        context.fillText(roundIndex + "", x, endY + 18)
+          if (label == null) continue
+
+          context.fillText(formatDate(label), x, endY + 18)
+        }
       }
     }
 
@@ -661,6 +708,21 @@ module InstantChart {
 
         needRenderMain = true
         needRenderOverview = true
+
+        // update label' animations
+        const delta = getLabelsDelta()
+
+        if (delta !== 0) {
+          // reset animations
+          if (labelAnimations.new.delta !== delta) {
+            labelAnimations.old.delta = labelAnimations.new.delta
+            labelAnimations.new.delta = delta
+            labelAnimations.old.alpha.value = 1
+            play(labelAnimations.old.alpha, 0, time)
+            labelAnimations.new.alpha.value = 0
+            play(labelAnimations.new.alpha, 1, time)
+          }
+        }
       }
 
       function onEnd() {
@@ -673,6 +735,10 @@ module InstantChart {
       }
     }
 
+
+    function getLabelsDelta() {
+      return Math.ceil((data.labels.length - 1) * (selected.end - selected.start) / V_AXIS_LINES_AMOUNT)
+    }
 
     function dispose() {
       canvas.removeEventListener("touchstart", handleTouchStart)
