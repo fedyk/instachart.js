@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, user-scalable=no">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>Instachart.js · Telegram</title>
+  <link rel="stylesheet" href="./style.css" />
+</head>
+
+<body>
+  <div class="chart-container">
+    <div id="chart-0" class=""></div>
+  </div>
+
+  <div class="chart-container">
+    <div id="chart-1" class=""></div>
+  </div>
+
+  <div class="chart-container">
+    <div id="chart-2" class=""></div>
+  </div>
+
+  <div class="chart-container">
+    <div id="chart-3" class=""></div>
+  </div>
+
+  <div class="chart-container">
+    <div id="chart-4" class=""></div>
+  </div>
+  <div class="chart-container">
+    <div id="chart-5" class=""></div>
+  </div>
+
+  <div class="footer">
+    <button class="toggle_night_mode" onclick="toggleNightMode()">Switch to Night Mode</button>
+  </div>
+
+  <script src="../dist/instant-chart.js"></script>
+  <script>
+    InstantChart.create(document.getElementById("chart-0"), {
+      type: "line",
+      data: {
+        labels: [1, 2, 3, 4],
+        datasets: [{
+          name: "Test",
+          color: "#ff0",
+          data: [1, 2, 3, 4]
+        }, {
+          name: "Test 2",
+          color: "#f0f",
+          data: [8, 4, 2, 1]
+        }, {
+          name: "Test 3",
+          color: "#0ff",
+          data: [1, 4, 1, 4]
+        }]
+      }
+    })
+
+    fetch("./data/chart_data.json")
+      .then(function (response) {
+        return response.json()
+      })
+      .then(function (datasets) {
+        for (let i = 0; i < datasets.length; i++) {
+          const dataset = datasets[i];
+          const containerId = "chart-" + (i + 1)
+          const container = document.getElementById(containerId)
+
+          if (!container) {
+            throw new Error("cannot find element with id" + containerId)
+          }
+
+          const data = {
+            labels: [],
+            datasets: []
+          }
+
+          const columns = new Map(dataset.columns.map(function (column) {
+            return [column[0], column.slice(1)]
+          }))
+
+          Object.keys(dataset.types).forEach(function (id) {
+            if (dataset.types[id] === "x") {
+              data.labels = columns.get(id)
+            }
+
+            if (dataset.types[id] === "line") {
+              data.datasets.push({
+                name: dataset.names[id],
+                color: dataset.colors[id],
+                data: columns.get(id),
+              })
+            }
+          })
+
+          const options = {
+            type: "line",
+            data: data
+          }
+
+          InstantChart.create(container, options)
+        }
+      })
+      .catch(function (err) {
+        console.error(err)
+      })
+  </script>
+</body>
+
+</html
