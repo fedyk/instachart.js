@@ -1,22 +1,5 @@
-module InstantChart {
-  export interface Dataset {
-    name: string
-    color: string
-    min: number
-    max: number
-    data: number[]
-  }
 
-  export interface Data {
-    labels: Array<number | Date>
-    datasets: Array<Dataset>
-  }
-
-  export interface Options {
-    type: "line"
-    data: Data
-  }
-
+namespace instachart {
   interface ChartRect {
     top: number
     left: number
@@ -41,17 +24,6 @@ module InstantChart {
   const DRAG_CONTROL_WIDTH = 12;
   const DRAG_CONTROL_WHITE_LINE_HEIGHT = 12;
   const IS_TOUCH_DEVICE = 'ontouchstart' in window;
-  const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-  const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-
-  function formatDate(time: number | Date, short: boolean = true) {
-    const date = time instanceof Date ? time : new Date(time);
-    const s = MONTH_NAMES[date.getMonth()] + ' ' + date.getDate();
-    if (short) {
-      return s;
-    }
-    return DAY_NAMES[date.getDay()] + ', ' + s;
-  }
 
   export function create(container: HTMLDivElement, options: Options) {
     const data = parseData(options.data)
@@ -215,7 +187,8 @@ module InstantChart {
       }
 
       if (needRenderMain) {
-        renderMainLines(), needRenderMain = false
+        renderMainLines()
+        needRenderMain = false
       }
 
       if (needRenderOverview) {
@@ -765,128 +738,5 @@ module InstantChart {
     return {
       dispose
     }
-  }
-
-  function parseData(data: any): Data {
-    if (!data || typeof data !== 'object') {
-      throw new Error("data cannot be empty")
-    }
-
-    if (!Array.isArray(data.labels)) {
-      throw new Error("data.labels should be an array")
-    }
-
-    const labels = data.labels as Array<number | Date>
-
-    if (!Array.isArray(data.datasets)) {
-      throw new Error("data.datasets should be an array")
-    }
-
-    const datasets = (data.datasets as any[]).map(parseDataset)
-
-    return {
-      labels,
-      datasets,
-    }
-  }
-
-  function parseDataset(dataset: any) {
-    if (typeof dataset !== "object") {
-      throw new Error("dataset should be an object");
-    }
-
-    return {
-      name: dataset.name,
-      color: dataset.color,
-      min: Math.min(...dataset.data),
-      max: Math.max(...dataset.data),
-      data: dataset.data as number[]
-    }
-  }
-
-  function parseSize(el: HTMLElement) {
-    const rect = el.getBoundingClientRect();
-    const width = rect.width
-    const height = rect.height || rect.width
-
-    return { width, height }
-  }
-
-  function scaleCanvas(canvas: HTMLCanvasElement, context: CanvasRenderingContext2D, width: number, height: number) {
-    // assume the device pixel ratio is 1 if the browser doesn't specify it
-    const devicePixelRatio = window.devicePixelRatio || 1;
-
-    // determine the 'backing store ratio' of the canvas context
-    const backingStoreRatio: number = (
-      (context as any).webkitBackingStorePixelRatio ||
-      (context as any).mozBackingStorePixelRatio ||
-      (context as any).msBackingStorePixelRatio ||
-      (context as any).oBackingStorePixelRatio ||
-      (context as any).backingStorePixelRatio || 1
-    );
-
-    // determine the actual ratio we want to draw at
-    const ratio = devicePixelRatio / backingStoreRatio;
-
-    if (devicePixelRatio !== backingStoreRatio) {
-      // set the 'real' canvas size to the higher width/height
-      canvas.width = width * ratio;
-      canvas.height = height * ratio;
-
-      // ...then scale it back down with CSS
-      canvas.style.width = width + 'px';
-      canvas.style.height = height + 'px';
-    }
-    else {
-      // this is a normal 1:1 device; just scale it simply
-      canvas.width = width;
-      canvas.height = height;
-      canvas.style.width = '';
-      canvas.style.height = '';
-    }
-
-    // scale the drawing context so everything will work at the higher ratio
-    context.scale(ratio, ratio);
-  }
-
-  type Animation = ReturnType<typeof createAnimation>
-
-  function createAnimation(value: number, duration: number) {
-    return {
-      fromValue: value,
-      toValue: value,
-      value: value,
-      startTime: 0,
-      duration: duration,
-      delay: 0
-    }
-  }
-
-  function play(animation: Animation, toValue: number, startTime: number) {
-    animation.startTime = startTime;
-    animation.toValue = toValue;
-    animation.fromValue = animation.value;
-  }
-
-  function updateAnimation(animation: Animation, time: number) {
-    if (animation.value === animation.toValue) {
-      return false;
-    }
-
-    var progress = ((time - animation.startTime) - animation.delay) / animation.duration;
-
-    if (progress < 0) {
-      progress = 0;
-    }
-
-    if (progress > 1) {
-      progress = 1;
-    }
-
-    var ease = -progress * (progress - 2);
-
-    animation.value = animation.fromValue + (animation.toValue - animation.fromValue) * ease;
-
-    return true;
   }
 }
