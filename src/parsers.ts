@@ -1,28 +1,32 @@
 namespace instachart {
-  export interface Options {
-    type: "line" | "area" | "bar"
-    data: {
-      labels: Array<number | Date>
-      datasets: Array<Dataset>
-    }
-  }
-
-  export interface Dataset {
-    name: string
-    color: string
-    min: number
-    max: number
-    data: number[]
-  }
-
-  export function parseOptions(options?: any): Options {
-    const type = options ? options.type : "line"
+  export function parseOptions(options?: any) {
+    const title = options ? options.title : void 0
+    const type = options ? options.type : void 0
     const data = options ? options.data : []
-    
+    const percentage = options ? options.yScaled : void 0
+    const stacked = options ? options.yScaled : void 0
+    const yScaled = options ? options.yScaled : void 0
+
     return {
+      title: parseTitle(title),
       type: parseType(type),
-      data: parseData(data)
+      data: parseData(data),
+      percentage: Boolean(percentage),
+      stacked: Boolean(stacked),
+      yScaled: Boolean(yScaled),
     }
+  }
+
+  export function parseTitle(title?: any) {
+    if (!title) {
+      return "Chart"
+    }
+
+    if (typeof title !== "string") {
+      throw new RangeError("`title` should be a string")
+    }
+
+    return title
   }
 
   export function parseType(type?: any) {
@@ -63,7 +67,6 @@ namespace instachart {
       datasets,
     }
   }
-
 
   export function parseDataset(dataset: any) {
     if (typeof dataset !== "object") {

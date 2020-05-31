@@ -7,13 +7,6 @@ namespace instachart {
     height: number
   }
 
-  enum DRAG_MODE {
-    NONE,
-    DRAG_LEFT,
-    DRAG_RIGHT,
-    DRAG_CENTER
-  }
-
   const MAIN_PADDING_BOTTOM = 35
   const OVERVIEW_HEIGHT = 40
   const HORIZONTAL_PADDING = 14
@@ -25,8 +18,9 @@ namespace instachart {
   const DRAG_CONTROL_WHITE_LINE_HEIGHT = 12;
   const IS_TOUCH_DEVICE = 'ontouchstart' in window;
 
-  export function create(container: HTMLDivElement, options: Options) {
-    const data = parseData(options.data)
+  export function create(container: HTMLDivElement, params: any) {
+    const options = parseOptions(params)
+    const data = options.data
     const min = 0
     const size = parseSize(container)
     const header = document.createElement("div")
@@ -44,10 +38,10 @@ namespace instachart {
     const maxSelectedValueAnimation = createAnimation(getMaxSelectedValue(), ANIMATION_DURATION)
     const labelAnimations = createLabelAnimations()
     let time: number;
-    let animationRequestId: number;
     let needRenderMain = true;
     let needRenderOverview = true
-    let dragMode = DRAG_MODE.NONE;
+    let dragMode: "NONE" | "DRAG_LEFT" | "DRAG_RIGHT" | "DRAG_CENTER" = "NONE";
+    let lastAnimationRequestId: number;
 
     if (!context) {
       throw new Error("Failed to create canvas context");
@@ -181,7 +175,7 @@ namespace instachart {
       if (updateAnimation(labelAnimations.new.alpha, time)) {
         needRenderMain = true
       }
-      
+
       if (updateAnimation(labelAnimations.old.alpha, time)) {
         needRenderMain = true
       }
@@ -195,10 +189,14 @@ namespace instachart {
         renderOverviewLines(), needRenderOverview = false
       }
 
-      animationRequestId = requestAnimationFrame(render)
+      lastAnimationRequestId = requestAnimationFrame(render)
     }
 
     function renderMainLines() {
+      if (options.type !== "line") {
+        console.warn("`type`", options.type, "is not supported yet")
+      }
+
       context.clearRect(mainRect.left, mainRect.top, mainRect.width, mainRect.height)
 
       // render horizontal axis lines (disappearing)
@@ -282,15 +280,10 @@ namespace instachart {
       const tailIndex = data.labels.length - 1
       const start = tailIndex * selected.start
       const end = tailIndex * selected.end
-      // const delta = Math.ceil(tailIndex * (selected.end - selected.start) / V_AXIS_LINES_AMOUNT)
 
-      // if (delta === 0) {
-      //   return;
-      // }
-
-      // reset animations
-
-      if (labelAnimations.new.delta === 0 || labelAnimations.old.delta === 0) return
+      if (labelAnimations.new.delta === 0 || labelAnimations.old.delta === 0) {
+        return
+      }
 
       setStyles(labelAnimations.new.alpha.value)
       renderLabels(labelAnimations.new.delta)
@@ -603,17 +596,17 @@ namespace instachart {
       if (isPointInLeftDragControl(offsetX, offsetY)) {
         x = scaleSelectedX(selected.start)
         d = clientX - x
-        dragMode = DRAG_MODE.DRAG_LEFT
+        dragMode = "DRAG_LEFT"
       }
       else if (isPointInRightDragControl(offsetX, offsetY)) {
         x = scaleSelectedX(selected.end)
         d = clientX - x
-        dragMode = DRAG_MODE.DRAG_RIGHT
+        dragMode = "DRAG_RIGHT"
       }
       else if (isPointInCenterDragControl(offsetX, offsetY)) {
         x = scaleSelectedX(selected.start)
         d = clientX - x
-        dragMode = DRAG_MODE.DRAG_CENTER
+        dragMode = "DRAG_CENTER"
       }
       else {
         return
@@ -646,7 +639,7 @@ namespace instachart {
       function onMove(event: MouseEvent | TouchEvent, clientX: number, clientY: number) {
         event.preventDefault()
 
-        if (dragMode === DRAG_MODE.DRAG_LEFT) {
+        if (dragMode === "DRAG_LEFT") {
           let start = invertSelectedX(clientX - d)
 
           if (selected.end - start < MIN_SELECTED) {
@@ -656,7 +649,7 @@ namespace instachart {
           selected.start = start
         }
 
-        if (dragMode === DRAG_MODE.DRAG_RIGHT) {
+        if (dragMode === "DRAG_RIGHT") {
           let end = invertSelectedX(clientX - d)
 
           if (end - selected.start < MIN_SELECTED) {
@@ -666,7 +659,7 @@ namespace instachart {
           selected.end = end
         }
 
-        if (dragMode === DRAG_MODE.DRAG_CENTER) {
+        if (dragMode === "DRAG_CENTER") {
           let start = invertSelectedX(clientX - d)
           let end = start + (selected.end - selected.start)
 
@@ -699,7 +692,7 @@ namespace instachart {
       }
 
       function onEnd() {
-        dragMode = DRAG_MODE.NONE
+        dragMode = "NONE"
         document.removeEventListener("mousemove", onMouseMove)
         document.removeEventListener("touchmove", onTouchMove)
         document.removeEventListener("touchcancel", onEnd)
@@ -707,7 +700,6 @@ namespace instachart {
         document.removeEventListener("mouseup", onEnd)
       }
     }
-
 
     function getLabelsDelta() {
       return Math.ceil((data.labels.length - 1) * (selected.end - selected.start) / V_AXIS_LINES_AMOUNT)
@@ -717,7 +709,7 @@ namespace instachart {
       canvas.removeEventListener("touchstart", handleTouchStart)
       canvas.removeEventListener("mousedown", handleMouseDown)
 
-      cancelAnimationFrame(animationRequestId);
+      cancelAnimationFrame(lastAnimationRequestId);
     }
 
     appendElements()
