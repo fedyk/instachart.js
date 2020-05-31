@@ -4,12 +4,23 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, user-scalable=no">
-  <meta http-equiv="X-UA-Compatible" content="ie=edge">
   <title>Instachart.js · Example</title>
-  <link rel="stylesheet" href="./style.css" />
   <style>
+    @font-face {
+      font-family: system;
+      font-style: normal;
+      font-weight: 300;
+      src: local(".SFNSText-Light"), local(".HelveticaNeueDeskInterface-Light"), local(".LucidaGrandeUI"), local("Ubuntu Light"), local("Segoe UI Light"), local("Roboto-Light"), local("DroidSans"), local("Tahoma");
+    }
+
+    body {
+      font-family: system;
+      font-size: 14px;
+      line-height: 1.42;
+      letter-spacing: 0.2px;
+    }
+
     .container {
-      max-width: 820px;
       padding: 14px;
       margin: 0 auto;
     }
@@ -59,77 +70,120 @@
 
   </div>
 
-  <script src="../dist/instachart.js"></script>
   <script>
-    instachart.create(document.getElementById("chart-0"), {
-      type: "line",
-      data: {
-        labels: [1, 2, 3, 4],
-        datasets: [{
-          name: "Test",
-          color: "#ff0",
-          data: [1, 2, 3, 4]
-        }, {
-          name: "Test 2",
-          color: "#f0f",
-          data: [8, 4, 2, 1]
-        }, {
-          name: "Test 3",
-          color: "#0ff",
-          data: [1, 4, 1, 4]
-        }]
+    var examples;
+
+    (function (examples) {
+      var paths = [
+        "./data/1/overview.json",
+        "./data/2/overview.json",
+        "./data/3/overview.json",
+        "./data/4/overview.json",
+        "./data/5/overview.json",
+      ]
+
+      var promises = paths.map(function (path) {
+        return fetch(path).then(function (response) {
+          return response.json()
+        })
+      })
+
+      examples.initExamples = initExamples
+
+      /**
+       * Call when lib is loaded
+       */
+      function initExamples() {
+        initDumyExample()
+
+        Promise.all(promises).then(function (responses) {
+          for (let i = 0; i < responses.length; i++) {
+            var response = responses[i];
+            var params = parseResponse(response)
+            var target = document.getElementById("chart-" + (i + 1))
+            var chart = instachart.create(target, params)
+          }
+        }).catch(function (err) {
+          console.error("initExamples", err)
+        })
       }
-    })
 
-    fetch("./data/chart_data.json")
-      .then(function (response) {
-        return response.json()
-      })
-      .then(function (datasets) {
-        for (let i = 0; i < datasets.length; i++) {
-          const dataset = datasets[i];
-          const containerId = "chart-" + (i + 1)
-          const container = document.getElementById(containerId)
-
-          if (!container) {
-            throw new Error("cannot find element with id" + containerId)
-          }
-
-          const data = {
-            labels: [],
-            datasets: []
-          }
-
-          const columns = new Map(dataset.columns.map(function (column) {
-            return [column[0], column.slice(1)]
-          }))
-
-          Object.keys(dataset.types).forEach(function (id) {
-            if (dataset.types[id] === "x") {
-              data.labels = columns.get(id)
-            }
-
-            if (dataset.types[id] === "line") {
-              data.datasets.push({
-                name: dataset.names[id],
-                color: dataset.colors[id],
-                data: columns.get(id),
-              })
-            }
-          })
-
-          const options = {
-            type: "line",
-            data: data
-          }
-
-          instachart.create(container, options)
+      function parseResponse(response) {
+        var type = void 0;
+        var data = {
+          labels: [],
+          datasets: []
         }
-      })
-      .catch(function (err) {
-        console.error(err)
-      })
+
+        var colors = response.colors
+        var columns = response.columns
+        var names = response.names
+        var types = response.types
+        var yScalled = response.y_scalled
+        var stacked = response.stacked
+        var percentage = response.percentage
+
+        for (let i = 0; i < columns.length; i++) {
+          var column = columns[i]
+          var columnId = column[0]
+          var name = names[columnId]
+          var color = colors[columnId]
+          var dataset = []
+
+          for (let j = 1; j < column.length; j++) {
+            dataset.push(column[j])
+          }
+
+          if (types[columnId] === "x") {
+            data.labels = dataset
+          }
+          else {
+            type = types[columnId]
+
+            data.datasets.push({
+              name: name,
+              color: color,
+              data: dataset
+            })
+          }
+        }
+
+        return {
+          title: "",
+          type: type,
+          data: data,
+          yScalled: yScalled,
+          stacked: stacked,
+          percentage: percentage,
+        }
+      }
+
+      function initDumyExample() {
+        instachart.create(document.getElementById("chart-0"), {
+          title: "Simple test",
+          type: "line",
+          data: {
+            labels: [1, 2, 3, 4],
+            datasets: [{
+              name: "Test",
+              color: "#ff0",
+              data: [1, 2, 3, 4]
+            }, {
+              name: "Test 2",
+              color: "#f0f",
+              data: [8, 4, 2, 1]
+            }, {
+              name: "Test 3",
+              color: "#0ff",
+              data: [1, 4, 1, 4]
+            }]
+          }
+        })
+      }
+    })(examples || (examples = {}))
   </script>
+
+  <script src="../dist/instachart.js" onload="examples.initExamples()"></script>
 </body>
 
 </html
