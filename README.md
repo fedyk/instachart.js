@@ -3,7 +3,10 @@
 ```js
 var el = document.getElementById("chart-id");
 var chart = instachart.create(el, {
+  title: "Intachart",
   type: "line" | "bar" | "area",
+  onZoom: (date: Date) => Promise<datasets>
+  yScaled: true | false // separated y axes for datasets
   data: {
     labels: [1, 2, 3, 4],
     datasets: [
@@ -21,10 +24,10 @@ var chart = instachart.create(el, {
         name: "Line 3",
         color: "#0ff",
         data: [1, 4, 1, 4],
-      },
-    ],
-  },
-});
+      }
+    ]
+  }
+})
 ```
 
 ## Resources
@@ -32,6 +35,8 @@ var chart = instachart.create(el, {
 - [Telegram Contest Data structure, Part 1](https://t.me/contest/15)
 - [Telegram Contest Data structure, Part 2](https://t.me/contest/66)
 - [Telegram Developer Challenges/JavaScript Chart](https://contest.com/chart-js)
+- [Telegram JS Design Specification](https://telegra.ph/JS-Design-Specification-04-07)
+- [Telegram Chart JS Interface](https://core.telegram.org/chartcontest/chart-js-interface)
 - [MDN. Canvas tutorial](https://developer.mozilla.org/en-US/docs/Web/API/Canvas_API/Tutorial)
 - [HTML canvas arc() Method](https://www.w3schools.com/tags/canvas_arc.asp)
 - [Typescript. Introduction to Modules](https://www.typescriptlang.org/docs/handbook/modules.html)
