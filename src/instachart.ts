@@ -199,6 +199,9 @@ namespace instachart {
 
       context.clearRect(mainRect.left, mainRect.top, mainRect.width, mainRect.height)
 
+      // render vertical axis lines
+      renderVerticalAxisLines()
+
       // render horizontal axis lines (disappearing)
       if (axisAnimations.old.alpha.value !== 0) {
         renderHorizontalAxisLines(axisAnimations.old.delta, axisAnimations.old.alpha.value)
@@ -208,9 +211,6 @@ namespace instachart {
       if (axisAnimations.new.alpha.value !== 0) {
         renderHorizontalAxisLines(axisAnimations.new.delta, axisAnimations.new.alpha.value)
       }
-
-      // render vertical axis lines
-      renderVerticalAxisLines()
 
       // lines
       for (let i = 0; i < data.datasets.length; i++) {
@@ -260,19 +260,24 @@ namespace instachart {
     function renderHorizontalAxisLines(delta: number, alpha: number) {
       context.globalAlpha = alpha
       context.strokeStyle = "#E7E9EB"
+      context.fillStyle = "#8E8E93"
       context.lineWidth = 1
+      context.textAlign = "left"
+      context.font = "12px sans-serif"
 
       const mainScaleY = (d: number) => {
         return mainRect.top + (mainRect.height - MAIN_PADDING_BOTTOM) * (1 - (d - min) / (maxSelectedValueAnimation.value - min))
       }
 
       for (let i = 0; i < H_AXIS_LINES_AMOUNT; i++) {
-        const y = mainScaleY(delta * i)
+        const d = delta * i
+        const y = mainScaleY(d)
 
         context.beginPath()
         context.moveTo(HORIZONTAL_PADDING, y)
         context.lineTo(mainRect.width - HORIZONTAL_PADDING, y)
         context.stroke()
+        context.fillText(formatNumber(d), HORIZONTAL_PADDING, y - 4)
       }
     }
 
@@ -286,6 +291,7 @@ namespace instachart {
       }
 
       setStyles(labelAnimations.new.alpha.value)
+
       renderLabels(labelAnimations.new.delta)
 
       if (labelAnimations.old.alpha.value > 0) {
@@ -313,7 +319,9 @@ namespace instachart {
           const endY = mainRect.height - MAIN_PADDING_BOTTOM
           const label = data.labels[roundIndex]
 
-          if (label == null) continue
+          if (label == null) {
+            continue
+          }
 
           context.fillText(formatDate(label), x, endY + 18)
         }

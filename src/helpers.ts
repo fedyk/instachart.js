@@ -48,4 +48,16 @@ namespace instachart {
     context.scale(ratio, ratio);
   }
 
+
+  export function formatNumber(d: number) {
+    if (d >= 1000000) {
+      return (d / 1000000).toFixed(1) + "M"
+    }
+
+    if (d >= 1000) {
+      return (d / 1000).toFixed(1) + "k"
+    }
+
+    return d.toString()
+  }
 }
